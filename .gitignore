@@ -1,0 +1,17 @@
+# Local Home Assistant config copies
+secrets.yaml
+*.local.yaml
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+.venv/
