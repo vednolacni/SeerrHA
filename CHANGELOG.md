@@ -6,6 +6,9 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 
+- The "Import blueprint" My Home Assistant badge returned *Invalid parameters
+  given*. The `blueprint_import` redirect takes `blueprint_url`, not
+  `blueprint`.
 - `examples/automations/seerr_pending_reminder.yaml` could not run: the
   `overseerr.get_requests` action requires `config_entry_id`, which was missing,
   and it listed `media.tmdb_id`, which does not exist on the response (the

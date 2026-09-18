@@ -179,4 +179,4 @@ the media you host and stream.
 [blueprint-url]: blueprints/automation/seerrha/seerr_request_approval.yaml
 [license-badge]: https://img.shields.io/badge/License-MIT-green.svg
 [import-badge]: https://my.home-assistant.io/badges/blueprint_import.svg
-[import-url]: https://my.home-assistant.io/redirect/blueprint_import/?blueprint=https%3A%2F%2Fgithub.com%2Fvednolacni%2FSeerrHA%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fseerrha%2Fseerr_request_approval.yaml
+[import-url]: https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fvednolacni%2FSeerrHA%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fseerrha%2Fseerr_request_approval.yaml
