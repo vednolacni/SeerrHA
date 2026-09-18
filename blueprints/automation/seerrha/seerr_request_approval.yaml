@@ -14,13 +14,23 @@ blueprint:
     2. **CSRF Protection is disabled** in Seerr -> Settings -> General.
 
     3. The `rest_command.seerrha_request_action` command exists in your
-    configuration (see `examples/rest_commands.yaml` in the SeerrHA repository)
+    configuration (copy
+    [`examples/rest_commands.yaml`](https://github.com/vednolacni/SeerrHA/blob/main/examples/rest_commands.yaml))
     and Home Assistant has been **restarted** once after adding it.
 
 
     The official integration only ships `get_requests`, `request_media` and
     `search_media` - it cannot approve or decline. That part is done with
     `rest_command` against `POST /api/v1/request/{id}/approve|decline`.
+
+
+    **Documentation**
+
+    - [SeerrHA on GitHub](https://github.com/vednolacni/SeerrHA)
+
+    - [Setup guide](https://github.com/vednolacni/SeerrHA/blob/main/docs/setup.md)
+
+    - [Troubleshooting](https://github.com/vednolacni/SeerrHA/blob/main/docs/troubleshooting.md)
   domain: automation
   source_url: https://github.com/vednolacni/SeerrHA/blob/main/blueprints/automation/seerrha/seerr_request_approval.yaml
   input:
