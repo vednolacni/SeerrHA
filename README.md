@@ -14,27 +14,13 @@ buttons. Pressing a button sends the decision back to Seerr.
 
 SeerrHA is not a custom component and not a replacement for that integration -
 it is plain Home Assistant configuration that adds the one thing the integration
-does not have: **approving and declining requests**.
+does not have: **approving and declining requests**. The integration ships only
+`get_requests`, `request_media` and `search_media`, so the decision goes out
+through `rest_command` straight to the Seerr REST API.
 
-## The gap this fills
-
-The official Seerr integration exposes exactly three actions:
-
-- `overseerr.get_requests`
-- `overseerr.request_media`
-- `overseerr.search_media`
-
-**Approving and declining is not among them.** Older guides still reach for
-`overseerr.update_request` - that was a service of the `vaparr/ha-overseerr`
-custom component, not of the official integration, and it no longer exists.
-
-So the work is split: the integration handles the inbound side (webhook events),
-and the decisions go out through `rest_command` straight to the Seerr API:
-
-```
-POST /api/v1/request/{id}/approve
-POST /api/v1/request/{id}/decline
-```
+> Older guides reach for `overseerr.update_request`. That was a service of the
+> `vaparr/ha-overseerr` custom component, not of the official integration, and
+> it no longer exists. The [Setup Guide](docs/setup.md) has the details.
 
 ## Features
 
