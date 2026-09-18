@@ -131,8 +131,8 @@ action: rest_command.seerrha_test
 data: {}
 ```
 
-A `404` with `Request not found.` is a **good** result here - it means
-authentication succeeded and only that specific request ID is missing. See the
+This reads one request and changes nothing. A `200` means the key works. A
+`403` means the key is wrong or CSRF protection is still on - see the
 [response table](troubleshooting.md#telling-api-responses-apart).
 
 ### Does approving work?

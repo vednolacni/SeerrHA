@@ -80,8 +80,29 @@ actions:
             data:
               request_id: "{{ rid }}"
               cmd: "{{ cmd }}"
-          - action: "{{ phone }}"
-            data:
-              message: clear_notification
-              data:
-                tag: "seerr_{{ rid }}"
+            response_variable: result
+            continue_on_error: true
+          - if:
+              - condition: template
+                value_template: >-
+                  {{ result is defined and result.status is defined
+                     and result.status in [200, 201] }}
+            then:
+              - action: "{{ phone }}"
+                data:
+                  message: clear_notification
+                  data:
+                    tag: "seerr_{{ rid }}"
+            else:
+              # Leave the prompt up - the request is still undecided.
+              - action: "{{ phone }}"
+                data:
+                  title: Seerr - decision failed
+                  message: >-
+                    Could not {{ cmd }} request #{{ rid }}
+                    ({{ result.status if result is defined and result.status is defined
+                        else 'no response' }}). It is still pending.
+                  data:
+                    tag: "seerr_error_{{ rid }}"
+                    channel: Seerr
+                    importance: high

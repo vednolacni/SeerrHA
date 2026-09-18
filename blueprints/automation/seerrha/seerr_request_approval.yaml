@@ -68,10 +68,14 @@ blueprint:
           name: Notify service
           description: >-
             The **service** of the Companion app, e.g.
-            `notify.mobile_app_your_phone`. A notify *entity*
-            (`notify.your_phone`) only supports `send_message` and cannot
-            render images or action buttons.
-          default: notify.mobile_app_your_phone
+            `notify.mobile_app_pixel_9`. A notify *entity*
+            (`notify.pixel_9`) only supports `send_message` and cannot render
+            images or action buttons.
+
+
+            For several phones, point this at one notification **group** rather
+            than creating a second automation from this blueprint - see
+            "Action prefix" below for why.
           selector:
             text:
         approve_label:
@@ -120,6 +124,25 @@ blueprint:
           default: false
           selector:
             boolean:
+        action_prefix:
+          name: Action prefix
+          description: >-
+            Prefix for the notification button identifiers, e.g.
+            `SEERR_APPROVE_35`. Leave it alone unless you create **more than
+            one** automation from this blueprint.
+
+
+            The button press comes back as a plain event with no device
+            information, so every automation built from this blueprint reacts to
+            every press. Two automations sharing a prefix therefore send the
+            decision to Seerr twice. Give each one its own prefix to keep them
+            apart.
+
+
+            Uppercase letters and digits only - **no underscores**.
+          default: SEERR
+          selector:
+            text:
 
 mode: queued
 max: 10
@@ -133,6 +156,7 @@ variables:
   sticky: !input sticky
   confirm_decision: !input confirm_decision
   notify_available: !input notify_available
+  action_prefix: !input action_prefix
 
 triggers:
   - trigger: state
@@ -153,7 +177,7 @@ conditions:
               (['pending', 'available'] if notify_available else ['pending']))
          or (trigger.id == 'response'
           and trigger.event.data.action is string
-          and trigger.event.data.action.startswith('SEERR_')) }}
+          and trigger.event.data.action.startswith(action_prefix ~ '_')) }}
 
 actions:
   - choose:
@@ -186,9 +210,9 @@ actions:
                 importance: high
                 sticky: "{{ sticky }}"
                 actions:
-                  - action: "SEERR_APPROVE_{{ rid }}"
+                  - action: "{{ action_prefix }}_APPROVE_{{ rid }}"
                     title: "{{ approve_label }}"
-                  - action: "SEERR_DECLINE_{{ rid }}"
+                  - action: "{{ action_prefix }}_DECLINE_{{ rid }}"
                     title: "{{ decline_label }}"
 
       # --- B: button pressed -> decision back to Seerr ---
@@ -200,29 +224,61 @@ actions:
               rid: "{{ trigger.event.data.action.split('_')[2] }}"
               cmd: >-
                 {{ 'approve' if 'APPROVE' in trigger.event.data.action else 'decline' }}
+          # continue_on_error so a connection error still reports back
+          # instead of aborting the run silently.
           - action: "{{ rest_command_name }}"
             data:
               request_id: "{{ rid }}"
               cmd: "{{ cmd }}"
-          - action: "{{ notify_service }}"
-            data:
-              message: clear_notification
-              data:
-                tag: "seerr_{{ rid }}"
-          - if:
-              - condition: template
-                value_template: "{{ confirm_decision }}"
-            then:
+            response_variable: result
+            continue_on_error: true
+          - variables:
+              ok: >-
+                {{ result is defined and result.status is defined
+                   and result.status in [200, 201] }}
+              status: >-
+                {{ result.status if result is defined and result.status is defined
+                   else 'no response' }}
+          - choose:
+              # The POST went through - clear the prompt, optionally confirm.
+              - conditions:
+                  - condition: template
+                    value_template: "{{ ok }}"
+                sequence:
+                  - action: "{{ notify_service }}"
+                    data:
+                      message: clear_notification
+                      data:
+                        tag: "seerr_{{ rid }}"
+                  - if:
+                      - condition: template
+                        value_template: "{{ confirm_decision }}"
+                    then:
+                      - action: "{{ notify_service }}"
+                        data:
+                          title: Seerr
+                          message: >-
+                            Request #{{ rid }} {{ 'approved' if cmd == 'approve' else 'declined' }}.
+                          data:
+                            tag: "seerr_result_{{ rid }}"
+                            group: seerr
+                            channel: "{{ notification_channel }}"
+                            importance: default
+            # The POST failed. Say so and leave the original notification up,
+            # because the request is still sitting in Seerr undecided.
+            default:
               - action: "{{ notify_service }}"
                 data:
-                  title: Seerr
+                  title: Seerr - decision failed
                   message: >-
-                    Request #{{ rid }} {{ 'approved' if cmd == 'approve' else 'declined' }}.
+                    Could not {{ cmd }} request #{{ rid }} ({{ status }}). It is
+                    still pending - check the API key and that CSRF protection
+                    is off in Seerr.
                   data:
-                    tag: "seerr_result_{{ rid }}"
+                    tag: "seerr_error_{{ rid }}"
                     group: seerr
                     channel: "{{ notification_channel }}"
-                    importance: default
+                    importance: high
 
       # --- C: media became available (optional) ---
       - conditions:

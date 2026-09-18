@@ -26,6 +26,9 @@ The official integration exposes ONLY these actions:
 * `overseerr.request_media`
 * `overseerr.search_media`
 
+All three REQUIRE a `config_entry_id` in `data`. Generating a call without it
+fails validation. See section 7 for the `get_requests` response shape.
+
 There is **no** approve/decline action. `overseerr.update_request` does NOT
 exist - it belonged to the removed `vaparr/ha-overseerr` custom component. Never
 generate automations that call it.
@@ -130,9 +133,11 @@ Use the notify **action** `notify.mobile_app_<device>`, never a notify
 **entity** (`notify.<device>`) - entities support only `send_message` and cannot
 render `image` or `actions`.
 
-The request ID is encoded **in the action name**, not in `tag`, because the
-Companion app does not reliably forward `tag` in
-`mobile_app_notification_action` on both platforms:
+The request ID is encoded **in the action name**, not in `tag`. The
+`mobile_app_notification_action` event carries only `action`, plus `reply_text`
+(text-input actions), `action_data` (iOS only) and the notification's data
+fields including `tag` (**Android only**). There is no `device_id`, so an
+automation cannot tell which phone answered, and `tag` is unusable on iOS:
 
 ```
 SEERR_APPROVE_<request_id>
@@ -191,7 +196,38 @@ here - treat lag as normal, not as an error condition to automate around.
 
 ---
 
-## 7. Minimum versions
+## 7. `overseerr.get_requests` response
+
+```yaml
+- action: overseerr.get_requests
+  data:
+    config_entry_id: <required>      # omitting this fails validation
+    status: pending                  # approved|pending|available|processing|unavailable|failed
+    sort_order: added                # added|modified
+  response_variable: pending
+```
+
+Returns `{"requests": [...]}`. Each entry is the request dataclass, so the
+request's own ID is **`id`**, not `request_id` (`request_id` is the *webhook*
+field name, section 2 - do not mix them up):
+
+```yaml
+id: 35
+status: 1                  # 1 pending, 2 approved, 3 declined, 5 completed
+requested_by: {display_name: ..., username: ..., email: ...}
+media: <full TMDB details>
+```
+
+The integration REPLACES `media` with the complete TMDB record, so:
+
+* movie title is `media.title`, TV title is `media.name` - there is no single
+  `title` field covering both; use
+  `{{ r.media.title | default(r.media.name, true) }}`
+* there is NO `media.tmdb_id` on this response; it is `media.media_info.tmdb_id`
+
+---
+
+## 8. Minimum versions
 
 * Home Assistant 2024.12+ (the `overseerr` integration; `triggers:`/`actions:`
   automation syntax)

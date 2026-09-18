@@ -2,6 +2,45 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.2.0] - 2026-09-18
+
+### Fixed
+
+- **The decision result is now checked before the notification is cleared.**
+  `rest_command` only logs a warning on a 4xx/5xx, so a failed approve used to
+  clear the prompt and report "Request #35 approved." while the request stayed
+  pending in Seerr. The blueprint, the package and the example automation now
+  read `response_variable`, keep the notification up on failure and report the
+  HTTP status.
+- Removed the `notify.mobile_app_your_phone` default from the blueprint's
+  **Notify service** input. It was a default that could not work, so the
+  automation could be saved in a silently broken state. The field is now
+  required.
+
+### Added
+
+- Blueprint input **Action prefix** (default `SEERR`). The
+  `mobile_app_notification_action` event carries no device information, so every
+  automation built from this blueprint reacts to every button press and two of
+  them would send the decision twice. A per-instance prefix keeps them apart.
+  Documented alongside the simpler fix: one automation, one notification group.
+- `llms.txt` section 7 documents the `overseerr.get_requests` response: the
+  required `config_entry_id`, `id` vs the webhook's `request_id`, and
+  `media.title` / `media.name` with no `media.tmdb_id`. Without this an
+  assistant reading `llms.txt` regenerated the bug fixed in 1.1.0.
+- Troubleshooting entries for Android notification channels being immutable
+  after creation, and for decisions being sent twice.
+
+### Changed
+
+- The smoke test reads `GET /api/v1/request?take=1` instead of a hardcoded
+  request ID 35, so a valid key returns `200` whatever exists. The docs no
+  longer have to explain why a `404` was the good outcome.
+- Replaced the vague "the Companion app does not reliably forward `tag`" with
+  the actual payload: `tag` is Android-only, `action_data` is iOS-only, and
+  there is no `device_id` at all.
+- The package header states what it leaves out compared with the blueprint.
+
 ## [1.1.0] - 2026-09-18
 
 ### Fixed

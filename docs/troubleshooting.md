@@ -82,6 +82,29 @@ dismisses it and the request stays pending.
 
 ---
 
+### Changing the channel sound or importance does nothing
+
+Android notification channels are created once and are then **immutable** - the
+`importance` in the payload is only read when the channel first appears. After
+that, the channel is owned by Android and only the user can change it, under
+the Companion app's notification settings on the phone.
+
+To get a fresh channel from Home Assistant, set a different **Notification
+channel** name in the blueprint. The old one stays behind until you remove it
+on the phone.
+
+---
+
+### Every decision is sent to Seerr twice
+
+You have more than one automation built from the blueprint. The button press
+arrives as a plain event with no device information, so all of them react to
+it. Give each automation its own **Action prefix** (under *Optional extras*),
+or better, use one automation pointed at a notification **group** covering
+every phone.
+
+---
+
 ## Template issues
 
 ### `UndefinedError: 'str object' has no attribute 'request'`
@@ -119,12 +142,15 @@ your action runs. `mode: queued` keeps the runs in order, but only
 
 | Response | Meaning |
 |---|---|
-| `404` + `path: /api/v1/request//` | Empty `request_id` - you sent `data: {}` |
-| `404` + `Request not found.` | **The key is valid**, that request ID does not exist |
-| `403` + `You do not have permission` | Invalid API key |
 | `200` | Success |
+| `404` + `path: /api/v1/request//` | Empty `request_id` - you called the approve/decline command with `data: {}` |
+| `404` + `Request not found.` | **The key is valid**, that request ID does not exist |
+| `403` + `You do not have permission` | Invalid API key, or CSRF protection still on |
 
-The second `404` is a good sign: authentication succeeded.
+`rest_command` does not fail the automation on a `4xx`/`5xx` - it only logs a
+warning. That is why the automation reads `response_variable` and checks the
+status before clearing the notification; otherwise a failed approve would look
+like it worked.
 
 ---
 

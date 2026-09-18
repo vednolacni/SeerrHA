@@ -25,8 +25,9 @@ seerrha_request_action:
   payload: "{}"
 
 # Read-only smoke test: verifies the API key without changing anything.
+# Returns 200 on a valid key whether or not any requests exist.
 seerrha_test:
-  url: "http://IP_SEERR:5055/api/v1/request/35"
+  url: "http://IP_SEERR:5055/api/v1/request?take=1"
   method: GET
   headers:
     X-Api-Key: !secret seerr_api_key

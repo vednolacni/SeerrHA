@@ -106,9 +106,24 @@ SEERR_APPROVE_35
 SEERR_DECLINE_35
 ```
 
-The Companion app does not reliably forward the `tag` field in the
-`mobile_app_notification_action` event on both platforms; the action name always
-comes through. It is parsed with `split('_')[2]`.
+The `mobile_app_notification_action` event carries very little:
+
+```json
+{
+  "action": "SEERR_APPROVE_35",
+  "reply_text": "...",   // only for REPLY / textInput actions
+  "action_data": {...},  // iOS only
+  "tag": "seerr_35"      // Android only
+}
+```
+
+`tag` comes back on Android but **not on iOS**, so it cannot hold the request
+ID. The action name always comes through on both, so the ID rides there and is
+parsed with `split('_')[2]`.
+
+There is also **no `device_id`** in the event. An automation cannot tell which
+phone answered, and every automation listening for this event sees every press
+- which is what the blueprint's **Action prefix** input exists to work around.
 
 The `tag` is still set (`seerr_35`) - it is what makes
 `message: clear_notification` dismiss the right notification afterwards.
@@ -120,6 +135,12 @@ The `tag` is still set (`seerr_35`) - it is what makes
 **The request ID lives in the action name**, not in `tag` - see above. It also
 carries a `SEERR_` prefix so it cannot collide with bare `approve` / `deny`
 actions from other notifications on the same phone.
+
+**The decision is checked before the prompt is cleared.** `rest_command` logs a
+warning on a 4xx/5xx but does not fail the automation, so without reading
+`response_variable` a failed approve would clear the notification and report
+success while the request sat untouched in Seerr. On failure the notification
+stays up and the error is reported instead.
 
 **One automation with `choose`**, not two. Both triggers share a context, so the
 notify service is defined once.

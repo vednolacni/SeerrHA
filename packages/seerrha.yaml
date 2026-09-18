@@ -8,7 +8,13 @@
 #
 # Then restart Home Assistant (rest_command definitions are only read at boot).
 #
-# Replace IP_SEERR and add `seerr_api_key` to secrets.yaml.
+# Replace IP_SEERR and the `phone` variable, and add `seerr_api_key` to
+# secrets.yaml.
+#
+# This is the minimal version: notification in, decision out. The blueprint
+# (blueprints/automation/seerrha/) additionally offers configurable button
+# labels, a confirmation notification, an "available" alert and a per-instance
+# action prefix. Use the blueprint if you want those.
 
 rest_command:
   seerrha_request_action:
@@ -19,8 +25,9 @@ rest_command:
       Content-Type: application/json
     payload: "{}"
 
+  # Read-only smoke test: 200 on a valid key, whatever requests exist.
   seerrha_test:
-    url: "http://IP_SEERR:5055/api/v1/request/35"
+    url: "http://IP_SEERR:5055/api/v1/request?take=1"
     method: GET
     headers:
       X-Api-Key: !secret seerr_api_key
@@ -93,8 +100,29 @@ automation:
                 data:
                   request_id: "{{ rid }}"
                   cmd: "{{ cmd }}"
-              - action: "{{ phone }}"
-                data:
-                  message: clear_notification
-                  data:
-                    tag: "seerr_{{ rid }}"
+                response_variable: result
+                continue_on_error: true
+              - if:
+                  - condition: template
+                    value_template: >-
+                      {{ result is defined and result.status is defined
+                         and result.status in [200, 201] }}
+                then:
+                  - action: "{{ phone }}"
+                    data:
+                      message: clear_notification
+                      data:
+                        tag: "seerr_{{ rid }}"
+                else:
+                  # Leave the prompt up - the request is still undecided.
+                  - action: "{{ phone }}"
+                    data:
+                      title: Seerr - decision failed
+                      message: >-
+                        Could not {{ cmd }} request #{{ rid }}
+                        ({{ result.status if result is defined and result.status is defined
+                            else 'no response' }}). It is still pending.
+                      data:
+                        tag: "seerr_error_{{ rid }}"
+                        channel: Seerr
+                        importance: high

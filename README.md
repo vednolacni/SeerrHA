@@ -98,6 +98,17 @@ creates that entity with exactly that name.
 | **Sticky notification** | `true` | Keep the notification until a button is pressed (Android) |
 | **Confirmation notification** | `true` | Short follow-up confirming the POST went through |
 | **Notify when available** | `false` | Extra notification once the content is ready to watch |
+| **Action prefix** | `SEERR` | Only change it if you build a *second* automation from this blueprint - see below |
+
+> **One automation, not one per phone.** The button press arrives as an event
+> with no device information, so every automation built from this blueprint
+> reacts to every press - two of them would send the decision to Seerr twice.
+> Point **Notify service** at a notification **group** covering all your
+> phones, or give each automation its own **Action prefix**.
+
+If the POST fails, the notification is **not** cleared and you get an error with
+the HTTP status instead, because the request is still sitting in Seerr
+undecided.
 
 > **Notify service, not notify entity.** `notify.your_phone` (entity) supports
 > only `send_message` - no images, no buttons. You need the
