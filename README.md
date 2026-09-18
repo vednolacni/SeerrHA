@@ -10,7 +10,7 @@ A push notification arrives on your phone the moment someone requests something
 in Seerr - with the poster, the requester's name and **Approve** / **Decline**
 buttons. Pressing a button sends the decision back to Seerr.
 
-**Built for: Home Assistant with the official Seerr (`overseerr`) integration.**
+**Built for: Home Assistant with the official Seerr integration.**
 
 SeerrHA is not a custom component and not a replacement for that integration -
 it is plain Home Assistant configuration that adds the one thing the integration
