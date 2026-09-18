@@ -1,0 +1,87 @@
+# SeerrHA - approve or decline requests from a mobile notification
+#
+# Plain automation version of the blueprint, for people who prefer to paste
+# YAML into Settings -> Automations -> Edit in YAML.
+#
+# Requires rest_command.seerrha_request_action (see examples/rest_commands.yaml)
+# and a Home Assistant restart after adding it.
+
+alias: SeerrHA - request approval
+description: Notification with poster and Approve/Decline buttons + response handling
+mode: queued
+max: 10
+
+variables:
+  phone: notify.mobile_app_your_phone
+
+triggers:
+  - trigger: state
+    entity_id: event.overseerr_last_media_event
+    not_from:
+      - unknown
+      - unavailable
+    id: request
+  - trigger: event
+    event_type: mobile_app_notification_action
+    id: response
+
+conditions:
+  - condition: template
+    value_template: >-
+      {{ (trigger.id == 'request'
+          and trigger.to_state.attributes.event_type == 'pending')
+         or (trigger.id == 'response'
+          and trigger.event.data.action is string
+          and trigger.event.data.action.startswith('SEERR_')) }}
+
+actions:
+  - choose:
+      # --- A: new request -> notification ---
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.id == 'request' }}"
+        sequence:
+          - variables:
+              rid: "{{ trigger.to_state.attributes['request']['request_id'] }}"
+              who: "{{ trigger.to_state.attributes['request']['requested_by_username'] }}"
+              title: "{{ trigger.to_state.attributes.subject }}"
+              poster: "{{ trigger.to_state.attributes.entity_picture }}"
+              seasons: >-
+                {{ trigger.to_state.attributes.extra
+                   | selectattr('name', 'eq', 'Requested Seasons')
+                   | map(attribute='value') | first | default('', true) }}
+          - action: "{{ phone }}"
+            data:
+              title: "{{ title }}"
+              message: >-
+                Requested by: {{ who }}{% if seasons %} - seasons {{ seasons }}{% endif %}
+              data:
+                image: "{{ poster }}"
+                tag: "seerr_{{ rid }}"
+                channel: Seerr
+                importance: high
+                sticky: true
+                actions:
+                  - action: "SEERR_APPROVE_{{ rid }}"
+                    title: Approve
+                  - action: "SEERR_DECLINE_{{ rid }}"
+                    title: Decline
+
+      # --- B: button pressed -> decision to Seerr ---
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.id == 'response' }}"
+        sequence:
+          - variables:
+              rid: "{{ trigger.event.data.action.split('_')[2] }}"
+              cmd: >-
+                {{ 'approve' if 'APPROVE' in trigger.event.data.action else 'decline' }}
+          - action: rest_command.seerrha_request_action
+            data:
+              request_id: "{{ rid }}"
+              cmd: "{{ cmd }}"
+          - action: "{{ phone }}"
+            data:
+              message: clear_notification
+              data:
+                tag: "seerr_{{ rid }}"

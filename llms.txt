@@ -1,0 +1,200 @@
+# SeerrHA - Seerr request approval from Home Assistant
+
+> SeerrHA is a configuration recipe (blueprint + YAML package) that turns new
+> Seerr / Overseerr / Jellyseerr requests into actionable Home Assistant mobile
+> notifications with poster art and Approve / Decline buttons, and POSTs the
+> decision back to the Seerr API.
+
+This document is the authoritative, compact technical specification for AI
+assistants generating Home Assistant automations, scripts and Jinja2 templates
+for this setup. It is not a custom integration - it is plain Home Assistant
+configuration on top of the official `overseerr` integration.
+
+---
+
+## 1. Architecture
+
+Two halves, because the official integration only covers one of them:
+
+1. **Inbound (events)**: the official `overseerr` integration registers a webhook
+   in Seerr and updates a single entity, `event.overseerr_last_media_event`.
+2. **Outbound (decisions)**: `rest_command` calls the Seerr REST API directly.
+
+The official integration exposes ONLY these actions:
+
+* `overseerr.get_requests` (supports `response_variable`)
+* `overseerr.request_media`
+* `overseerr.search_media`
+
+There is **no** approve/decline action. `overseerr.update_request` does NOT
+exist - it belonged to the removed `vaparr/ha-overseerr` custom component. Never
+generate automations that call it.
+
+Hard requirement: **CSRF Protection must be disabled** in Seerr settings, or the
+integration cannot register its webhook and the REST calls return 403.
+
+---
+
+## 2. The event entity
+
+Entity: `event.overseerr_last_media_event`
+
+Attributes are **nested dictionaries**, not flattened keys:
+
+```yaml
+event_type: pending          # pending | approved | declined | available | failed | auto_approved
+event: New Movie Request
+subject: "Spider-Man: Brand New Day (2026)"
+message: "<overview text>"
+entity_picture: "https://image.tmdb.org/t/p/w600_and_h900_bestv2/....jpg"
+media:
+  media_type: movie          # movie | tv
+  imdb_id: ""
+  tmdb_id: 969681
+  tvdb_id: null
+  jellyfin_media_id: ""
+  status: pending
+  status4k: unknown
+request:
+  request_id: 35
+  requested_by_email: frankoti
+  requested_by_username: Frankoti
+  requested_by_avatar: "/avatarproxy/..."
+  requested_by_jellyfin_user_id: "..."
+extra: []                    # TV only: [{name: "Requested Seasons", value: "3, 4, 5"}]
+```
+
+### Template rules (important)
+
+* The poster is already in `entity_picture`. Do NOT generate a TMDB API lookup.
+* Access nested values with bracket syntax:
+  `trigger.to_state.attributes['request']['request_id']`
+* Read from `trigger.to_state`, never `state_attr()` - the entity may already
+  hold the next event.
+* NEVER assign the whole attribute dict to a variable:
+  `{{ trigger.to_state.attributes }}` renders as a **string** (the dict contains
+  `EventEntityStateAttribute.*` enum keys), and any later `.request` access
+  raises `UndefinedError: 'str object' has no attribute 'request'`.
+* Requested seasons:
+  `{{ trigger.to_state.attributes.extra | selectattr('name','eq','Requested Seasons') | map(attribute='value') | first | default('', true) }}`
+
+---
+
+## 3. REST API
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/api/v1/request/{id}/approve` | Approve a request |
+| POST | `/api/v1/request/{id}/decline` | Decline a request |
+| GET | `/api/v1/request/{id}` | Read one request |
+
+Auth header: `X-Api-Key: <key>`. Default port: `5055`.
+
+### Canonical rest_command definition
+
+```yaml
+rest_command:
+  seerrha_request_action:
+    url: "http://IP_SEERR:5055/api/v1/request/{{ request_id }}/{{ cmd }}"
+    method: POST
+    headers:
+      X-Api-Key: !secret seerr_api_key
+      Content-Type: application/json
+    payload: "{}"
+```
+
+Constraints to respect when generating config:
+
+* Command names are slugs - **lowercase only**. A capital letter invalidates the
+  entire `rest_command:` block while stale definitions stay in memory.
+* In an `!include`d file, do not repeat the `rest_command:` key; names go in
+  column 0.
+* `rest_command` is read at startup only - a **restart** is required, not a
+  YAML reload. Automations reload on save.
+* `response_variable` on a `rest_command` call returns `{status, content}`.
+
+### Response interpretation
+
+| Response | Meaning |
+|---|---|
+| `404` + `path: /api/v1/request//` | `request_id` was empty (e.g. `data: {}`) |
+| `404` + `Request not found.` | Key is VALID, that ID does not exist |
+| `403` + `You do not have permission` | Invalid API key (or CSRF still enabled) |
+| `200` | Success |
+
+---
+
+## 4. Notification contract
+
+Use the notify **action** `notify.mobile_app_<device>`, never a notify
+**entity** (`notify.<device>`) - entities support only `send_message` and cannot
+render `image` or `actions`.
+
+The request ID is encoded **in the action name**, not in `tag`, because the
+Companion app does not reliably forward `tag` in
+`mobile_app_notification_action` on both platforms:
+
+```
+SEERR_APPROVE_<request_id>
+SEERR_DECLINE_<request_id>
+```
+
+Parse with `trigger.event.data.action.split('_')[2]`.
+Decide direction with `'approve' if 'APPROVE' in trigger.event.data.action else 'decline'`.
+
+`tag: seerr_<request_id>` is still set so the notification can be dismissed
+afterwards with `message: clear_notification` and the same tag.
+
+---
+
+## 5. Automation shape
+
+One automation with `choose`, not two separate ones - both triggers share the
+same context and variables.
+
+`mode: queued` with `max: 10` is mandatory: without it, simultaneous requests
+are dropped.
+
+```yaml
+mode: queued
+max: 10
+triggers:
+  - trigger: state
+    entity_id: event.overseerr_last_media_event
+    not_from: [unknown, unavailable]
+    id: request
+  - trigger: event
+    event_type: mobile_app_notification_action
+    id: response
+conditions:
+  - condition: template
+    value_template: >-
+      {{ (trigger.id == 'request'
+          and trigger.to_state.attributes.event_type == 'pending')
+         or (trigger.id == 'response'
+          and trigger.event.data.action is string
+          and trigger.event.data.action.startswith('SEERR_')) }}
+```
+
+---
+
+## 6. Seerr status model
+
+| Status | Meaning |
+|---|---|
+| Pending | Awaiting approval |
+| Requested | Approved, sent to Radarr/Sonarr |
+| Available | Jellyfin/Plex has it, playable |
+
+`Requested -> Available` is driven by the media server, not by Radarr:
+Radarr imports -> Jellyfin library scan -> Seerr scans Jellyfin. With symlink
+setups Jellyfin often misses the change notification and waits for its periodic
+scan, so lag is expected and is not an error condition to automate around.
+
+---
+
+## 7. Minimum versions
+
+* Home Assistant 2024.12+ (the `overseerr` integration; `triggers:`/`actions:`
+  automation syntax)
+* Home Assistant Companion app (Android or iOS) for actionable notifications

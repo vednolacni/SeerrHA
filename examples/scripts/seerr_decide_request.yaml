@@ -1,0 +1,45 @@
+# SeerrHA - approve or decline a request by ID
+#
+# Handy for dashboard buttons, voice commands ("Approve request 35") or for
+# testing the REST command from Developer Tools -> Actions.
+
+alias: SeerrHA - decide request
+description: Approve or decline a Seerr request by its numeric ID
+mode: parallel
+max: 10
+
+fields:
+  request_id:
+    name: Request ID
+    description: "Numeric ID of the request (Developer Tools -> Actions -> Seerr: Get requests)"
+    required: true
+    example: 35
+    selector:
+      number:
+        min: 1
+        max: 100000
+        mode: box
+  decision:
+    name: Decision
+    required: true
+    default: approve
+    selector:
+      select:
+        options:
+          - approve
+          - decline
+
+sequence:
+  - action: rest_command.seerrha_request_action
+    data:
+      request_id: "{{ request_id }}"
+      cmd: "{{ decision }}"
+    response_variable: result
+  - variables:
+      ok: "{{ result.status == 200 }}"
+  - action: persistent_notification.create
+    data:
+      title: SeerrHA
+      message: >-
+        Request #{{ request_id }} {{ decision }}:
+        {{ 'OK' if ok else 'failed with HTTP ' ~ result.status }}

@@ -1,0 +1,37 @@
+# SeerrHA - notify when requested media is ready to watch
+#
+# Fires on the `available` event type, which Seerr emits once the content has
+# been imported by Radarr/Sonarr AND picked up by the Jellyfin/Plex library
+# scan. The delay between "Requested" and "Available" comes from that scan, not
+# from Radarr - see docs/troubleshooting.md.
+
+alias: SeerrHA - media available
+description: Notification with poster once a request becomes available
+mode: queued
+max: 10
+
+triggers:
+  - trigger: state
+    entity_id: event.overseerr_last_media_event
+    not_from:
+      - unknown
+      - unavailable
+
+conditions:
+  - condition: template
+    value_template: "{{ trigger.to_state.attributes.event_type == 'available' }}"
+
+actions:
+  - variables:
+      title: "{{ trigger.to_state.attributes.subject }}"
+      poster: "{{ trigger.to_state.attributes.entity_picture }}"
+      media_type: "{{ trigger.to_state.attributes['media']['media_type'] }}"
+  - action: notify.mobile_app_your_phone
+    data:
+      title: "{{ title }}"
+      message: >-
+        {{ 'Movie' if media_type == 'movie' else 'Series' }} is ready to watch.
+      data:
+        image: "{{ poster }}"
+        group: seerr
+        channel: Seerr

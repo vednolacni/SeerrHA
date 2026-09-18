@@ -1,0 +1,32 @@
+# SeerrHA - REST commands
+#
+# Include from configuration.yaml with:
+#   rest_command: !include rest_commands.yaml
+#
+# Do NOT repeat the `rest_command:` key inside this file and keep the command
+# names in column 0 - two extra spaces of indentation silently turn a command
+# into a sub-option of the previous one.
+#
+# Command names are slugs: lowercase letters, digits and underscores only.
+# `seerrHA_request_action` invalidates the WHOLE rest_command block.
+#
+# A new or renamed rest_command needs a full Home Assistant restart.
+# "Reload YAML configuration" does not pick it up.
+
+# Approve or decline a request.
+#   request_id: numeric ID of the request
+#   cmd:        approve | decline
+seerrha_request_action:
+  url: "http://IP_SEERR:5055/api/v1/request/{{ request_id }}/{{ cmd }}"
+  method: POST
+  headers:
+    X-Api-Key: !secret seerr_api_key
+    Content-Type: application/json
+  payload: "{}"
+
+# Read-only smoke test: verifies the API key without changing anything.
+seerrha_test:
+  url: "http://IP_SEERR:5055/api/v1/request/35"
+  method: GET
+  headers:
+    X-Api-Key: !secret seerr_api_key

@@ -1,0 +1,31 @@
+# SeerrHA - daily reminder of pending requests
+#
+# Uses the official integration action `overseerr.get_requests` (which returns a
+# response) instead of the REST API, so no API key is needed here.
+
+alias: SeerrHA - pending requests reminder
+description: Once a day, list requests still waiting for a decision
+mode: single
+
+triggers:
+  - trigger: time
+    at: "19:00:00"
+
+actions:
+  - action: overseerr.get_requests
+    data:
+      status: pending
+      sort_order: added
+    response_variable: pending
+  - condition: template
+    value_template: "{{ pending.requests | count > 0 }}"
+  - action: notify.mobile_app_your_phone
+    data:
+      title: "Seerr: {{ pending.requests | count }} pending request(s)"
+      message: >-
+        {{ pending.requests
+           | map(attribute='media.tmdb_id')
+           | join(', ') }}
+      data:
+        group: seerr
+        channel: Seerr

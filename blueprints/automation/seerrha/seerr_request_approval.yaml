@@ -1,0 +1,234 @@
+blueprint:
+  name: SeerrHA - Approve or decline Seerr requests
+  description: >-
+    Sends an actionable mobile notification with poster art, requester name and
+    **Approve** / **Decline** buttons whenever a new request lands in Seerr
+    (Overseerr / Jellyseerr). Pressing a button POSTs the decision straight back
+    to the Seerr API.
+
+
+    **Prerequisites**
+
+    1. The official **Seerr** (`overseerr`) integration is set up in Home Assistant.
+
+    2. **CSRF Protection is disabled** in Seerr -> Settings -> General.
+
+    3. The `rest_command.seerrha_request_action` command exists in your
+    configuration (see `examples/rest_commands.yaml` in the SeerrHA repository)
+    and Home Assistant has been **restarted** once after adding it.
+
+
+    The official integration only ships `get_requests`, `request_media` and
+    `search_media` - it cannot approve or decline. That part is done with
+    `rest_command` against `POST /api/v1/request/{id}/approve|decline`.
+  domain: automation
+  source_url: https://github.com/vednolacni/SeerrHA/blob/main/blueprints/automation/seerrha/seerr_request_approval.yaml
+  input:
+    seerr_settings:
+      name: Seerr
+      icon: mdi:movie-open-check
+      collapsed: false
+      input:
+        event_entity:
+          name: Seerr event entity
+          description: >-
+            The event entity created by the Seerr integration. The integration
+            registers and overwrites the webhook in Seerr on every reload - do
+            not edit that webhook by hand.
+          default: event.overseerr_last_media_event
+          selector:
+            entity:
+              filter:
+                - domain: event
+        rest_command_name:
+          name: REST command
+          description: >-
+            Name of the rest_command that performs the approve/decline call. It
+            must accept the `request_id` and `cmd` variables. Slugs cannot
+            contain capital letters.
+          default: rest_command.seerrha_request_action
+          selector:
+            text:
+    notification_settings:
+      name: Notification
+      icon: mdi:cellphone-message
+      collapsed: false
+      input:
+        notify_service:
+          name: Notify service
+          description: >-
+            The **service** of the Companion app, e.g.
+            `notify.mobile_app_matic_s_phone`. A notify *entity*
+            (`notify.matic_s_phone`) only supports `send_message` and cannot
+            render images or action buttons.
+          default: notify.mobile_app_your_phone
+          selector:
+            text:
+        approve_label:
+          name: Approve button label
+          default: Approve
+          selector:
+            text:
+        decline_label:
+          name: Decline button label
+          default: Decline
+          selector:
+            text:
+        notification_channel:
+          name: Android notification channel
+          description: Channel name used for grouping and per-channel sound settings.
+          default: Seerr
+          selector:
+            text:
+        sticky:
+          name: Sticky notification
+          description: >-
+            Keep the notification on screen until a button is pressed instead of
+            letting a swipe dismiss it (Android only).
+          default: true
+          selector:
+            boolean:
+    extra_features:
+      name: Optional extras
+      icon: mdi:tune
+      collapsed: true
+      input:
+        confirm_decision:
+          name: Confirmation notification
+          description: >-
+            Send a short follow-up notification after the decision has been
+            POSTed, so you know the call actually went through.
+          default: true
+          selector:
+            boolean:
+        notify_available:
+          name: Notify when media becomes available
+          description: >-
+            Send a notification when Seerr reports `available`, i.e. the content
+            has been imported and Jellyfin/Plex has picked it up.
+          default: false
+          selector:
+            boolean:
+
+mode: queued
+max: 10
+
+variables:
+  notify_service: !input notify_service
+  rest_command_name: !input rest_command_name
+  approve_label: !input approve_label
+  decline_label: !input decline_label
+  notification_channel: !input notification_channel
+  sticky: !input sticky
+  confirm_decision: !input confirm_decision
+  notify_available: !input notify_available
+
+triggers:
+  - trigger: state
+    entity_id: !input event_entity
+    not_from:
+      - unknown
+      - unavailable
+    id: request
+  - trigger: event
+    event_type: mobile_app_notification_action
+    id: response
+
+conditions:
+  - condition: template
+    value_template: >-
+      {{ (trigger.id == 'request'
+          and trigger.to_state.attributes.event_type in
+              (['pending', 'available'] if notify_available else ['pending']))
+         or (trigger.id == 'response'
+          and trigger.event.data.action is string
+          and trigger.event.data.action.startswith('SEERR_')) }}
+
+actions:
+  - choose:
+      # --- A: new pending request -> actionable notification ---
+      - conditions:
+          - condition: template
+            value_template: >-
+              {{ trigger.id == 'request'
+                 and trigger.to_state.attributes.event_type == 'pending' }}
+        sequence:
+          - variables:
+              rid: "{{ trigger.to_state.attributes['request']['request_id'] }}"
+              who: "{{ trigger.to_state.attributes['request']['requested_by_username'] }}"
+              title: "{{ trigger.to_state.attributes.subject }}"
+              poster: "{{ trigger.to_state.attributes.entity_picture }}"
+              seasons: >-
+                {{ trigger.to_state.attributes.extra
+                   | selectattr('name', 'eq', 'Requested Seasons')
+                   | map(attribute='value') | first | default('', true) }}
+          - action: "{{ notify_service }}"
+            data:
+              title: "{{ title }}"
+              message: >-
+                {{ who }}{% if seasons %} - seasons {{ seasons }}{% endif %}
+              data:
+                image: "{{ poster }}"
+                tag: "seerr_{{ rid }}"
+                group: seerr
+                channel: "{{ notification_channel }}"
+                importance: high
+                sticky: "{{ sticky }}"
+                actions:
+                  - action: "SEERR_APPROVE_{{ rid }}"
+                    title: "{{ approve_label }}"
+                  - action: "SEERR_DECLINE_{{ rid }}"
+                    title: "{{ decline_label }}"
+
+      # --- B: button pressed -> decision back to Seerr ---
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.id == 'response' }}"
+        sequence:
+          - variables:
+              rid: "{{ trigger.event.data.action.split('_')[2] }}"
+              cmd: >-
+                {{ 'approve' if 'APPROVE' in trigger.event.data.action else 'decline' }}
+          - action: "{{ rest_command_name }}"
+            data:
+              request_id: "{{ rid }}"
+              cmd: "{{ cmd }}"
+          - action: "{{ notify_service }}"
+            data:
+              message: clear_notification
+              data:
+                tag: "seerr_{{ rid }}"
+          - if:
+              - condition: template
+                value_template: "{{ confirm_decision }}"
+            then:
+              - action: "{{ notify_service }}"
+                data:
+                  title: Seerr
+                  message: >-
+                    Request #{{ rid }} {{ 'approved' if cmd == 'approve' else 'declined' }}.
+                  data:
+                    tag: "seerr_result_{{ rid }}"
+                    group: seerr
+                    channel: "{{ notification_channel }}"
+                    importance: default
+
+      # --- C: media became available (optional) ---
+      - conditions:
+          - condition: template
+            value_template: >-
+              {{ trigger.id == 'request'
+                 and trigger.to_state.attributes.event_type == 'available' }}
+        sequence:
+          - variables:
+              title: "{{ trigger.to_state.attributes.subject }}"
+              poster: "{{ trigger.to_state.attributes.entity_picture }}"
+          - action: "{{ notify_service }}"
+            data:
+              title: "{{ title }}"
+              message: Ready to watch.
+              data:
+                image: "{{ poster }}"
+                group: seerr
+                channel: "{{ notification_channel }}"
+                importance: default
