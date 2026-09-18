@@ -1,0 +1,10 @@
+extends: relaxed
+
+rules:
+  line-length: disable
+  comments-indentation: disable
+  truthy:
+    allowed-values: ["true", "false", "on"]
+  document-start: disable
+  empty-lines:
+    max: 2
