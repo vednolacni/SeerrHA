@@ -30,8 +30,8 @@ media:
   status4k: unknown
 request:
   request_id: 35
-  requested_by_email: frankoti
-  requested_by_username: Frankoti
+  requested_by_email: moviebuff@example.com
+  requested_by_username: MovieBuff
   requested_by_avatar: "/avatarproxy/..."
   requested_by_jellyfin_user_id: "..."
 extra: []                    # TV: [{name: "Requested Seasons", value: "3, 4, 5"}]
@@ -76,8 +76,11 @@ Requested seasons only exist for TV requests and live in the `extra` list:
 | `auto_approved` | Request from a user with auto-approve permission (admins) |
 | `approved` | Request was approved (by you, by the web UI, or by this automation) |
 | `declined` | Request was declined |
-| `available` | Content is imported and visible in Jellyfin/Plex |
-| `failed` | Radarr/Sonarr rejected or failed the grab |
+| `available` | Content is ready to play - Seerr has seen it in the library |
+| `failed` | The download or import failed downstream of Seerr |
+
+Only `pending` (and optionally `available`) is acted on. The rest arrive on the
+same entity and are filtered out by the automation's condition.
 
 ---
 
@@ -112,15 +115,23 @@ The `tag` is still set (`seerr_35`) - it is what makes
 
 ---
 
-## Request statuses in Seerr
+## Design decisions
 
-| Status | Meaning |
-|---|---|
-| Pending | Waiting for approval |
-| Requested | Approved, handed off to Radarr/Sonarr |
-| Available | Jellyfin has the content, ready to play |
+**The request ID lives in the action name**, not in `tag` - see above. It also
+carries a `SEERR_` prefix so it cannot collide with bare `approve` / `deny`
+actions from other notifications on the same phone.
 
-The *Requested -> Available* transition does **not** come from Radarr. Seerr
-reads the status from **Jellyfin**: Radarr imports the file -> Jellyfin scans
-the library -> Seerr scans Jellyfin. See
-[Troubleshooting](troubleshooting.md#status-stuck-on-requested).
+**One automation with `choose`**, not two. Both triggers share a context, so the
+notify service is defined once.
+
+**`mode: queued` is mandatory.** With several requests arriving at once, none is
+dropped.
+
+**Data comes from `trigger.to_state`**, never from `state_attr()`. The entity can
+already be overwritten by the next event while the automation is still running.
+
+**Never store the whole attribute dictionary in a variable.** It contains
+`EventEntityStateAttribute.*` enum keys, so Home Assistant renders it as a
+string and every later `.request` access raises `UndefinedError`. Store concrete
+fields instead - see
+[Troubleshooting](troubleshooting.md#template-issues).

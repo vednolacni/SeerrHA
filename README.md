@@ -10,9 +10,31 @@ A push notification arrives on your phone the moment someone requests something
 in Seerr - with the poster, the requester's name and **Approve** / **Decline**
 buttons. Pressing a button sends the decision back to Seerr.
 
-Built for: Seerr (Overseerr / Jellyseerr) + Jellyfin + Radarr/Sonarr, Home
-Assistant with the official **Seerr** (`overseerr`) integration and the
-Companion app.
+**Built for: Home Assistant with the official Seerr (`overseerr`) integration.**
+
+SeerrHA is not a custom component and not a replacement for that integration -
+it is plain Home Assistant configuration that adds the one thing the integration
+does not have: **approving and declining requests**.
+
+## The gap this fills
+
+The official Seerr integration exposes exactly three actions:
+
+- `overseerr.get_requests`
+- `overseerr.request_media`
+- `overseerr.search_media`
+
+**Approving and declining is not among them.** Older guides still reach for
+`overseerr.update_request` - that was a service of the `vaparr/ha-overseerr`
+custom component, not of the official integration, and it no longer exists.
+
+So the work is split: the integration handles the inbound side (webhook events),
+and the decisions go out through `rest_command` straight to the Seerr API:
+
+```
+POST /api/v1/request/{id}/approve
+POST /api/v1/request/{id}/decline
+```
 
 ## Features
 
@@ -23,41 +45,9 @@ Companion app.
 - 🖼️ **No TMDB lookups**: the poster URL already arrives in `entity_picture`
 - 📺 **TV-aware**: requested seasons are pulled out of the `extra` list and shown in the message
 - 🔔 **Auto-dismiss**: the notification clears itself on both devices once a decision is made
-- 🎬 **Optional "ready to watch" alert**: a second notification when the request flips to `available`
-- 🗒️ **Optional daily digest**: reminder listing requests still waiting for a decision
 - 🧵 **`mode: queued`**: several requests at once, none dropped
 - 🔐 **API key in `secrets.yaml`**: stays out of backups and diagnostics
 - 🤖 **[`llms.txt`](llms.txt)**: compact spec so ChatGPT/Claude/Cursor stop inventing `overseerr.update_request`
-
-## Why the integration alone is not enough
-
-The official Seerr integration exposes exactly three actions:
-
-- `overseerr.get_requests`
-- `overseerr.request_media`
-- `overseerr.search_media`
-
-**Approving and declining is not among them.** Older guides from the
-`vaparr/ha-overseerr` wiki use `overseerr.update_request` - that was a service of
-a custom component and no longer exists.
-
-So the work is split: the integration handles the push side (webhook events),
-and the decisions go through `rest_command` directly to the Seerr API:
-
-```
-POST /api/v1/request/{id}/approve
-POST /api/v1/request/{id}/decline
-```
-
-## Documentation
-
-| Guide | Description |
-|---|---|
-| **[Setup Guide](docs/setup.md)** | Step-by-step from integration to a working notification, including verification actions |
-| **[Event & Data Reference](docs/event-reference.md)** | Attribute structure of `event.overseerr_last_media_event`, event types, API endpoints, action-name format |
-| **[Troubleshooting & FAQ](docs/troubleshooting.md)** | Slug errors, stale REST commands, 403 hunts, notify entity vs. action, statuses stuck on "Requested" |
-| **[Examples & Cookbook](examples/README.md)** | Ready-to-use automations, scripts and dashboard cards |
-| **[AI Assistant Context (`llms.txt`)](llms.txt)** | Compact, authoritative reference designed for prompt context |
 
 ## Requirements
 
@@ -72,68 +62,43 @@ POST /api/v1/request/{id}/decline
 ## Installation
 
 SeerrHA needs two pieces: the REST commands (outbound) and the automation
-(inbound). Pick **either** the blueprint route or the package route.
+(inbound). Pick **either** the blueprint route or the package route - the
+[Setup Guide](docs/setup.md) walks through both in detail.
 
-### Step 1: Add the Seerr integration
-
-1. **Settings** -> **Devices & Services** -> **Add Integration**.
-2. Search for **Seerr**.
-3. Enter the server URL (e.g. `http://192.168.1.10:5055`) and the API key.
-
-> The integration creates the webhook inside Seerr itself and overwrites it on
-> every reload - **do not edit that webhook by hand**.
-
-### Step 2: Store the API key
-
-`config/secrets.yaml`:
-
-```yaml
-seerr_api_key: YOUR_API_KEY_HERE
-```
-
-### Step 3: Add the REST commands
-
-Copy [`examples/rest_commands.yaml`](examples/rest_commands.yaml) to
-`config/rest_commands.yaml`, replace `IP_SEERR`, and include it:
-
-```yaml
-# configuration.yaml
-rest_command: !include rest_commands.yaml
-```
-
-Then **restart Home Assistant**. `rest_command` is only read at boot - "Reload
-YAML configuration" will not pick up a new command.
-
-> The included file must not repeat the `rest_command:` key, and command names
-> must be lowercase slugs. Both mistakes have loud, misleading failure modes -
-> see [Troubleshooting](docs/troubleshooting.md#rest-command-issues).
-
-### Step 4: Import the blueprint
+1. **Add the Seerr integration** - Settings -> Devices & Services -> Add
+   Integration -> **Seerr**, with your server URL and API key.
+2. **Store the API key** in `config/secrets.yaml` as `seerr_api_key`.
+3. **Add the REST commands** - copy
+   [`examples/rest_commands.yaml`](examples/rest_commands.yaml), replace
+   `IP_SEERR`, include it with `rest_command: !include rest_commands.yaml`, then
+   **restart** Home Assistant.
+4. **Import the blueprint** and fill in your notify service.
 
 [![Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled.][import-badge]][import-url]
 
-Or **Settings** -> **Automations & Scenes** -> **Blueprints** -> **Import
-Blueprint**, and paste:
+> Prefer one file? Skip steps 3 and 4 and drop
+> [`packages/seerrha.yaml`](packages/seerrha.yaml) into `config/packages/`
+> instead, then edit `IP_SEERR` and the notify service inside it.
 
-```
-https://github.com/vednolacni/SeerrHA/blob/main/blueprints/automation/seerrha/seerr_request_approval.yaml
-```
+Two mistakes cost hours, so they are worth repeating: `rest_command` is only
+read at boot (a YAML reload will not pick up a new command), and command names
+must be lowercase slugs. Both fail in misleading ways - see
+[Troubleshooting](docs/troubleshooting.md#rest-command-issues).
 
-Create an automation from it and fill in your notify service
-(`notify.mobile_app_<your_phone>`).
+### Placeholders you must replace
 
-### Alternative: the package route
+Nothing in this repository works until these are swapped for your own values.
+None of them are real.
 
-Skip steps 3 and 4 and drop [`packages/seerrha.yaml`](packages/seerrha.yaml)
-into `config/packages/` instead:
+| Placeholder | Replace with | Where to find it |
+|---|---|---|
+| `notify.mobile_app_your_phone` | Your Companion **action**, e.g. `notify.mobile_app_pixel_9` | **Developer Tools** -> **Actions**, search `notify.mobile_app` and pick your device |
+| `IP_SEERR` | Host or IP of your Seerr server | The address you open Seerr on (port `5055` by default) |
+| `YOUR_API_KEY_HERE` | Your Seerr API key, stored in `secrets.yaml` | **Seerr** -> **Settings** -> **General** -> **API Key** |
+| `YOUR_CONFIG_ENTRY_ID` | The Seerr integration's config entry ID (only the pending-requests reminder needs it) | Build the action once in **Developer Tools** -> **Actions** -> **Seerr: Get requests**, then switch to YAML mode and copy it |
 
-```yaml
-# configuration.yaml
-homeassistant:
-  packages: !include_dir_named packages
-```
-
-Edit `IP_SEERR` and the notify service inside the file, then restart.
+`event.overseerr_last_media_event` is **not** a placeholder - the integration
+creates that entity with exactly that name.
 
 ## Blueprint Options
 
@@ -141,66 +106,26 @@ Edit `IP_SEERR` and the notify service inside the file, then restart.
 |---|---|---|
 | **Seerr event entity** | `event.overseerr_last_media_event` | The event entity created by the integration |
 | **REST command** | `rest_command.seerrha_request_action` | Command that performs the approve/decline call |
-| **Notify service** | - | The Companion **action**, e.g. `notify.mobile_app_matic_s_phone` |
+| **Notify service** | - | The Companion **action**, e.g. `notify.mobile_app_your_phone` |
 | **Approve / Decline labels** | `Approve` / `Decline` | Button text |
 | **Notification channel** | `Seerr` | Android channel for grouping and per-channel sounds |
 | **Sticky notification** | `true` | Keep the notification until a button is pressed (Android) |
 | **Confirmation notification** | `true` | Short follow-up confirming the POST went through |
 | **Notify when available** | `false` | Extra notification once the content is ready to watch |
 
-> **Notify service, not notify entity.** `notify.matic_s_phone` (entity) supports
+> **Notify service, not notify entity.** `notify.your_phone` (entity) supports
 > only `send_message` - no images, no buttons. You need the
 > `notify.mobile_app_*` action.
 
-## Verifying the setup
+## Documentation
 
-```yaml
-# 1. Is the key valid? (GET, changes nothing)
-action: rest_command.seerrha_test
-data: {}
-
-# 2. Does approving work?
-action: rest_command.seerrha_request_action
-data:
-  request_id: 35
-  cmd: approve
-```
-
-For IDs of pending requests: **Developer Tools** -> **Actions** -> **Seerr: Get
-requests**, status `pending`.
-
-To check whether the phone sends responses at all: **Developer Tools** ->
-**Events** -> listen to `mobile_app_notification_action` and press a button.
-
-| Response | Meaning |
+| Guide | Description |
 |---|---|
-| `404` + `path: /api/v1/request//` | Empty `request_id` (you sent `data: {}`) |
-| `404` + `Request not found.` | **The key is valid**, that request ID does not exist |
-| `403` + `You do not have permission` | Invalid API key |
-| `200` | Success |
-
-The second `404` is a good sign: authentication succeeded.
-
-## Design Decisions
-
-**The request ID lives in the action name** (`SEERR_APPROVE_35`), not in `tag`.
-The Companion app does not reliably forward the `tag` field in the
-`mobile_app_notification_action` event on both platforms; the action name always
-comes through. Parsed with `split('_')[2]`.
-
-**One automation with `choose`**, not two. Both triggers share a context, so the
-notify service is defined once.
-
-**`mode: queued` is mandatory** - with several requests arriving at once, none
-is dropped.
-
-**Data comes from `trigger.to_state`**, never from `state_attr()`. The entity can
-already be overwritten by the next event while the automation is still running.
-
-**Never store the whole attribute dictionary in a variable.** It contains
-`EventEntityStateAttribute.*` enum keys, so Home Assistant renders it as a
-string and every later `.request` access raises `UndefinedError`. Store concrete
-fields instead.
+| **[Setup Guide](docs/setup.md)** | Step-by-step from integration to a working notification, including the verification actions |
+| **[Event & Data Reference](docs/event-reference.md)** | Attribute structure of `event.overseerr_last_media_event`, event types, API endpoints, action-name format and the design decisions behind them |
+| **[Troubleshooting & FAQ](docs/troubleshooting.md)** | Slug errors, stale REST commands, 403 hunts, notify entity vs. action |
+| **[Examples & Cookbook](examples/README.md)** | Ready-to-use automations and a helper script |
+| **[AI Assistant Context (`llms.txt`)](llms.txt)** | Compact, authoritative reference designed for prompt context |
 
 ## Support
 
@@ -209,10 +134,30 @@ fields instead.
 - [`rest_command` - Home Assistant docs](https://www.home-assistant.io/integrations/rest_command)
 - [Overseerr webhook payload](https://docs.overseerr.dev/using-overseerr/notifications/webhooks)
 
-## Acknowledgments
+## Credits
+
+SeerrHA started from [**vaparr/ha-overseerr**](https://github.com/vaparr/ha-overseerr)
+and its *Phone Notifications in Home Assistant* wiki page, which was the first
+public recipe for approving Overseerr requests from a Companion notification.
+That project is a HACS custom component; its `overseerr.update_request` service
+and `sensor.overseerr_pending_requests` no longer apply now that Home Assistant
+ships an official `overseerr` integration under the same domain.
+
+SeerrHA is the same idea rebuilt on the official integration, with three changes
+that came out of running it:
+
+- **decisions go to the REST API**, because the official integration has no
+  approve/decline action to call;
+- **the request ID travels in the action name** (`SEERR_APPROVE_35`) instead of
+  in `tag`, which the Companion app does not forward reliably on both platforms;
+- **action names are prefixed**, so they no longer collide with bare `approve` /
+  `deny` actions coming from other notifications.
 
 README structure and documentation layout inspired by
-[JellyHA](https://github.com/zupancicmarko/jellyha).
+[**JellyHA**](https://github.com/zupancicmarko/jellyha) - and if you run
+Jellyfin, go and look at it properly. It is a seriously good integration with a
+far wider scope than this repository has: SeerrHA does one thing, JellyHA does
+the whole media-server side.
 
 This project was developed with the assistance of AI.
 

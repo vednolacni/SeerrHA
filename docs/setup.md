@@ -107,14 +107,14 @@ Then **Create Automation** from the blueprint and fill in:
 |---|---|
 | Seerr event entity | `event.overseerr_last_media_event` |
 | REST command | `rest_command.seerrha_request_action` |
-| Notify service | `notify.mobile_app_<your_phone>` |
+| Notify service | your own, e.g. `notify.mobile_app_pixel_9` - `your_phone` is a placeholder |
 
 ### Finding your notify service
 
 **Developer Tools** -> **Actions** -> search `notify.mobile_app`. Pick the one
 matching your device.
 
-> A notify **entity** (`notify.matic_s_phone`) is not the same thing. Entities
+> A notify **entity** (`notify.your_phone`) is not the same thing. Entities
 > only support `send_message` - no image, no action buttons. You need the
 > `notify.mobile_app_*` **action**.
 

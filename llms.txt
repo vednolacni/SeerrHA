@@ -57,8 +57,8 @@ media:
   status4k: unknown
 request:
   request_id: 35
-  requested_by_email: frankoti
-  requested_by_username: Frankoti
+  requested_by_email: moviebuff@example.com
+  requested_by_username: MovieBuff
   requested_by_avatar: "/avatarproxy/..."
   requested_by_jellyfin_user_id: "..."
 extra: []                    # TV only: [{name: "Requested Seasons", value: "3, 4, 5"}]
@@ -178,18 +178,16 @@ conditions:
 
 ---
 
-## 6. Seerr status model
+## 6. Scope
 
-| Status | Meaning |
-|---|---|
-| Pending | Awaiting approval |
-| Requested | Approved, sent to Radarr/Sonarr |
-| Available | Jellyfin/Plex has it, playable |
+SeerrHA covers exactly one job: turning a `pending` request into an actionable
+notification and POSTing the decision back. `available` is the only other event
+it optionally reacts to.
 
-`Requested -> Available` is driven by the media server, not by Radarr:
-Radarr imports -> Jellyfin library scan -> Seerr scans Jellyfin. With symlink
-setups Jellyfin often misses the change notification and waits for its periodic
-scan, so lag is expected and is not an error condition to automate around.
+Do NOT generate automations that try to drive downloads, library scans or the
+media server from Home Assistant. Seerr owns everything after the approval, and
+the timing of `Requested -> Available` is not observable or controllable from
+here - treat lag as normal, not as an error condition to automate around.
 
 ---
 

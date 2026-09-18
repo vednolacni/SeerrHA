@@ -2,6 +2,39 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.1.0] - 2026-09-18
+
+### Fixed
+
+- `examples/automations/seerr_pending_reminder.yaml` could not run: the
+  `overseerr.get_requests` action requires `config_entry_id`, which was missing,
+  and it listed `media.tmdb_id`, which does not exist on the response (the
+  integration replaces `media` with the full TMDB details). It now passes the
+  config entry and lists real titles, request IDs and requesters.
+
+### Changed
+
+- Reframed the project as an add-on to the official Seerr (`overseerr`)
+  integration rather than to a whole media stack. Jellyfin / Plex / Radarr /
+  Sonarr specifics that Home Assistant cannot observe or control were dropped
+  from the docs.
+- Replaced the personal `matic_s_phone` and requester samples with neutral
+  placeholders, and documented every placeholder and where to find the real
+  value in the README.
+- Moved the design decisions out of the README into
+  `docs/event-reference.md`, and trimmed the setup steps the README duplicated
+  from `docs/setup.md`.
+- Credited `vaparr/ha-overseerr` as the origin of the approach, with what
+  changed since.
+- CI: `actions/checkout` v4 -> v5 (v4 pins the deprecated Node 20).
+
+### Removed
+
+- `examples/dashboards/pending_requests_card.yaml`. Lovelace does not render
+  Jinja templates in card configuration, so its Approve / Decline buttons sent
+  the template as a literal string instead of a request ID. `examples/README.md`
+  now explains why there is no dashboard card.
+
 ## [1.0.0] - 2026-09-18
 
 ### Added

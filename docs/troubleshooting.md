@@ -52,9 +52,9 @@ Automations are the opposite - they refresh as soon as you save them.
 
 You are calling a notify **entity** instead of a notify **action**.
 
-- `notify.matic_s_phone` (entity) - supports only `send_message`. No image, no
+- `notify.your_phone` (entity) - supports only `send_message`. No image, no
   actions.
-- `notify.mobile_app_matic_s_phone` (action) - full Companion payload.
+- `notify.mobile_app_your_phone` (action) - full Companion payload.
 
 Find the right one under **Developer Tools** -> **Actions** ->
 `notify.mobile_app`.
@@ -137,28 +137,7 @@ The second `404` is a good sign: authentication succeeded.
 
 ---
 
-## Seerr status issues
-
-### Status stuck on "Requested"
-
-The *Requested -> Available* transition does not come from Radarr. The chain is:
-
-```
-Radarr imports the file -> Jellyfin scans the library -> Seerr scans Jellyfin
-```
-
-With symlink-based setups Jellyfin often does not get a change notification and
-waits for its periodic scan, so a delay is not a bug.
-
-To force it:
-
-1. **Jellyfin** -> **Scan Libraries**.
-2. **Seerr** -> **Settings** -> **Jellyfin** -> **Sync Libraries**.
-
-If the status still does not move, the library is most likely not enabled for
-synchronisation in the Seerr settings.
-
----
+## Event issues
 
 ### No events arrive at all
 
@@ -177,3 +156,12 @@ synchronisation in the Seerr settings.
 
 Admin accounts usually have auto-approve permission, so their requests arrive as
 `auto_approved`, not `pending`. Test with a regular user account.
+
+---
+
+### The "available" notification arrives late, or not at all
+
+`available` is emitted by Seerr once it sees the finished item in your media
+library, which happens on its own schedule well after the approval. Nothing in
+Home Assistant influences that timing - if the event never fires, the question
+belongs on the Seerr side, not here.

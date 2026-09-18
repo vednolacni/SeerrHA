@@ -1,9 +1,11 @@
 # SeerrHA - notify when requested media is ready to watch
 #
-# Fires on the `available` event type, which Seerr emits once the content has
-# been imported by Radarr/Sonarr AND picked up by the Jellyfin/Plex library
-# scan. The delay between "Requested" and "Available" comes from that scan, not
-# from Radarr - see docs/troubleshooting.md.
+# Fires on the `available` event type, which Seerr emits once it sees the
+# finished item in your library. That happens on Seerr's own schedule, well
+# after the approval - lag here is normal, see docs/troubleshooting.md.
+#
+# The blueprint has this built in as the "Notify when media becomes available"
+# option. Use this standalone version only with the package route.
 
 alias: SeerrHA - media available
 description: Notification with poster once a request becomes available

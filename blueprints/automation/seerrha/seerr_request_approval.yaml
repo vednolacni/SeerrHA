@@ -58,8 +58,8 @@ blueprint:
           name: Notify service
           description: >-
             The **service** of the Companion app, e.g.
-            `notify.mobile_app_matic_s_phone`. A notify *entity*
-            (`notify.matic_s_phone`) only supports `send_message` and cannot
+            `notify.mobile_app_your_phone`. A notify *entity*
+            (`notify.your_phone`) only supports `send_message` and cannot
             render images or action buttons.
           default: notify.mobile_app_your_phone
           selector:
@@ -105,7 +105,8 @@ blueprint:
           name: Notify when media becomes available
           description: >-
             Send a notification when Seerr reports `available`, i.e. the content
-            has been imported and Jellyfin/Plex has picked it up.
+            is ready to play. Seerr decides when that is, so it arrives well
+            after the approval.
           default: false
           selector:
             boolean:
