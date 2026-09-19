@@ -82,8 +82,11 @@ Three rules that cost hours if broken - see
 1. The included file must **not** repeat the `rest_command:` key, and command
    names live in column 0.
 2. Command names are slugs: **no capital letters**.
-3. `rest_command` is only read at boot. **Restart** Home Assistant - "Reload
-   YAML configuration" is not enough.
+3. **Restart** Home Assistant this first time. `rest_command` is not loaded
+   until the key exists in your configuration, so there is nothing to reload
+   yet. From then on `rest_command.reload` is enough for new or renamed
+   commands - note that *Reload core configuration* is **not** the same thing
+   and will not pick them up.
 
 > Prefer a single file? [`packages/seerrha.yaml`](../packages/seerrha.yaml)
 > contains the REST commands and the automation in one package.

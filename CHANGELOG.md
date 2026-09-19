@@ -2,9 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
-## [1.2.0] - 2026-09-18
+## [1.2.0] - 2026-09-19
 
 ### Fixed
+
+- **`rest_command` does not need a restart after the first one.** Every guide
+  in this repository said a new or renamed command required a full restart.
+  It does not: `rest_command` registers a reload handler that drops all
+  commands and re-reads the YAML. Only the very first `rest_command:` key needs
+  a restart, because the integration is not loaded before it exists. The
+  confusion came from *Reload core configuration*, which genuinely does not
+  touch `rest_command` - `rest_command.reload` is the one that does.
 
 - **The decision result is now checked before the notification is cleared.**
   `rest_command` only logs a warning on a 4xx/5xx, so a failed approve used to

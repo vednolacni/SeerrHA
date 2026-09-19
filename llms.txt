@@ -112,8 +112,10 @@ Constraints to respect when generating config:
   entire `rest_command:` block while stale definitions stay in memory.
 * In an `!include`d file, do not repeat the `rest_command:` key; names go in
   column 0.
-* `rest_command` is read at startup only - a **restart** is required, not a
-  YAML reload. Automations reload on save.
+* Adding the `rest_command:` key for the first time needs a **restart** - the
+  integration is not loaded before that. Afterwards, new or renamed commands are
+  picked up by `rest_command.reload`. `homeassistant.reload_core_config` does
+  NOT reload them. Automations reload on save.
 * `response_variable` on a `rest_command` call returns `{status, content}`.
 
 ### Response interpretation

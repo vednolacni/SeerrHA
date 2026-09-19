@@ -6,7 +6,8 @@
 #   homeassistant:
 #     packages: !include_dir_named packages
 #
-# Then restart Home Assistant (rest_command definitions are only read at boot).
+# Then restart Home Assistant - rest_command is not loaded until the key exists,
+# so there is nothing to reload the first time. Later edits: rest_command.reload.
 #
 # Replace IP_SEERR and the `phone` variable, and add `seerr_api_key` to
 # secrets.yaml.

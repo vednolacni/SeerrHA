@@ -66,9 +66,10 @@ SeerrHA needs two pieces: the REST commands (outbound) and the automation
 > [`packages/seerrha.yaml`](packages/seerrha.yaml) into `config/packages/`
 > instead, then edit `IP_SEERR` and the notify service inside it.
 
-Two mistakes cost hours, so they are worth repeating: `rest_command` is only
-read at boot (a YAML reload will not pick up a new command), and command names
-must be lowercase slugs. Both fail in misleading ways - see
+Two mistakes cost hours, so they are worth repeating: command names must be
+lowercase slugs, and that first restart is genuinely required - `rest_command`
+is not loaded until the key exists, so there is nothing to reload yet. Later
+edits only need `rest_command.reload`. Both fail in misleading ways - see
 [Troubleshooting](docs/troubleshooting.md#rest-command-issues).
 
 ### Placeholders you must replace

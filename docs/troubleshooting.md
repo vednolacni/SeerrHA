@@ -39,10 +39,24 @@ the file must **not** repeat the `rest_command:` key.
 
 ### A new REST command does not exist after "Reload YAML"
 
-`rest_command` is only evaluated at startup. A new or renamed command requires a
-full **restart** of Home Assistant.
+You almost certainly used the wrong reload. **Reload core configuration** (and
+the old "Reload YAML configuration" button) does not touch `rest_command`.
 
-Automations are the opposite - they refresh as soon as you save them.
+`rest_command` does have its own reload. Use whichever you prefer:
+
+- **Developer Tools** -> **Actions** -> `rest_command.reload`
+- **Developer Tools** -> **YAML** -> **RESTful Command**
+- **Developer Tools** -> **YAML** -> **All YAML configuration**
+
+It drops every existing command and re-reads them from your configuration,
+`!include`s and all.
+
+**The one exception is the first time.** If `rest_command:` was not in
+`configuration.yaml` at the last startup, the integration was never loaded, so
+`rest_command.reload` does not exist yet either. That first time needs a real
+**restart**; after that, reloading is enough.
+
+Automations are different again - they refresh as soon as you save them.
 
 ---
 

@@ -61,7 +61,8 @@ standalone files are only needed on the package route.
 ### Adding the REST commands
 
 See [Setup step 3](../docs/setup.md#step-3-add-the-rest-commands). Remember that
-`rest_command` requires a **restart**, not just a YAML reload.
+the first `rest_command` needs a **restart**; after that `rest_command.reload`
+is enough.
 
 ---
 

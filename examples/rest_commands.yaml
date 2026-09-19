@@ -10,8 +10,9 @@
 # Command names are slugs: lowercase letters, digits and underscores only.
 # `seerrHA_request_action` invalidates the WHOLE rest_command block.
 #
-# A new or renamed rest_command needs a full Home Assistant restart.
-# "Reload YAML configuration" does not pick it up.
+# Adding the `rest_command:` key for the first time needs a restart. After that,
+# new or renamed commands are picked up by `rest_command.reload` - but NOT by
+# "Reload core configuration", which is a different thing.
 
 # Approve or decline a request.
 #   request_id: numeric ID of the request
