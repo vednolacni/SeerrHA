@@ -32,7 +32,7 @@ through `rest_command` straight to the Seerr REST API.
 - 📺 **TV-aware**: requested seasons are pulled out of the `extra` list and shown in the message
 - 🔔 **Auto-dismiss**: the notification clears itself on both devices once a decision is made
 - 🧵 **`mode: queued`**: several requests at once, none dropped
-- 🔐 **API key in `secrets.yaml`**: stays out of backups and diagnostics
+- 🔐 **No file editing**: the Seerr URL and API key are blueprint inputs, not hand-edited YAML
 - 🤖 **[`llms.txt`](llms.txt)**: compact spec so ChatGPT/Claude/Cursor stop inventing `overseerr.update_request`
 
 ## Requirements
@@ -53,18 +53,18 @@ SeerrHA needs two pieces: the REST commands (outbound) and the automation
 
 1. **Add the Seerr integration** - Settings -> Devices & Services -> Add
    Integration -> **Seerr**, with your server URL and API key.
-2. **Store the API key** in `config/secrets.yaml` as `seerr_api_key`.
-3. **Add the REST commands** - copy
-   [`examples/rest_commands.yaml`](examples/rest_commands.yaml), replace
-   `IP_SEERR`, include it with `rest_command: !include rest_commands.yaml`, then
+2. **Add the REST commands** - copy
+   [`examples/rest_commands.yaml`](examples/rest_commands.yaml) as-is (nothing
+   to edit), include it with `rest_command: !include rest_commands.yaml`, then
    **restart** Home Assistant.
-4. **Import the blueprint** and fill in your notify service.
+3. **Import the blueprint** and fill in your Seerr URL, API key and notify
+   service.
 
 [![Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled.][import-badge]][import-url]
 
-> Prefer one file? Skip steps 3 and 4 and drop
+> Prefer one file? Skip steps 2 and 3 and drop
 > [`packages/seerrha.yaml`](packages/seerrha.yaml) into `config/packages/`
-> instead, then edit `IP_SEERR` and the notify service inside it.
+> instead, then edit the three values at the top of its `variables:` block.
 
 Two mistakes cost hours, so they are worth repeating: command names must be
 lowercase slugs, and that first restart is genuinely required - `rest_command`
@@ -77,11 +77,14 @@ edits only need `rest_command.reload`. Both fail in misleading ways - see
 Nothing in this repository works until these are swapped for your own values.
 None of them are real.
 
+On the blueprint route you fill these into the UI and edit no files at all. The
+package and the standalone examples carry them as placeholders instead.
+
 | Placeholder | Replace with | Where to find it |
 |---|---|---|
 | `notify.mobile_app_your_phone` | Your Companion **action**, e.g. `notify.mobile_app_pixel_9` | **Developer Tools** -> **Actions**, search `notify.mobile_app` and pick your device |
 | `IP_SEERR` | Host or IP of your Seerr server | The address you open Seerr on (port `5055` by default) |
-| `YOUR_API_KEY_HERE` | Your Seerr API key, stored in `secrets.yaml` | **Seerr** -> **Settings** -> **General** -> **API Key** |
+| `YOUR_SEERR_API_KEY` | Your Seerr API key | **Seerr** -> **Settings** -> **General** -> **API Key** |
 | `YOUR_CONFIG_ENTRY_ID` | The Seerr integration's config entry ID (only the pending-requests reminder needs it) | Build the action once in **Developer Tools** -> **Actions** -> **Seerr: Get requests**, then switch to YAML mode and copy it |
 
 `event.overseerr_last_media_event` is **not** a placeholder - the integration
@@ -92,6 +95,8 @@ creates that entity with exactly that name.
 | Input | Default | Description |
 |---|---|---|
 | **Seerr event entity** | `event.overseerr_last_media_event` | The event entity created by the integration |
+| **Seerr URL** | - | e.g. `http://192.168.1.10:5055`, no trailing slash |
+| **Seerr API key** | - | Seerr -> Settings -> General -> API Key. See the note below |
 | **REST command** | `rest_command.seerrha_request_action` | Command that performs the approve/decline call |
 | **Notify service** | - | The Companion **action**, e.g. `notify.mobile_app_your_phone` |
 | **Approve / Decline labels** | `Approve` / `Decline` | Button text |
@@ -110,6 +115,13 @@ creates that entity with exactly that name.
 If the POST fails, the notification is **not** cleared and you get an error with
 the HTTP status instead, because the request is still sitting in Seerr
 undecided.
+
+> **Where the API key lives.** Blueprint inputs are stored in plain text in
+> `automations.yaml` and appear in automation traces, so the key reaches backups
+> and diagnostics downloads. To keep it in `secrets.yaml` instead, set the
+> `X-Api-Key` header in your `rest_commands.yaml` to `!secret seerr_api_key` and
+> leave the blueprint field blank - the command reads the secret and ignores
+> what the blueprint passes.
 
 > **Notify service, not notify entity.** `notify.your_phone` (entity) supports
 > only `send_message` - no images, no buttons. You need the

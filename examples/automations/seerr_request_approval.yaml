@@ -12,6 +12,9 @@ mode: queued
 max: 10
 
 variables:
+  # ---- the only three lines you need to edit ----
+  seerr_url: http://IP_SEERR:5055
+  seerr_api_key: YOUR_SEERR_API_KEY
   phone: notify.mobile_app_your_phone
 
 triggers:
@@ -78,6 +81,8 @@ actions:
                 {{ 'approve' if 'APPROVE' in trigger.event.data.action else 'decline' }}
           - action: rest_command.seerrha_request_action
             data:
+              base_url: "{{ seerr_url }}"
+              api_key: "{{ seerr_api_key }}"
               request_id: "{{ rid }}"
               cmd: "{{ cmd }}"
             response_variable: result

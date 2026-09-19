@@ -14,9 +14,10 @@ blueprint:
     2. **CSRF Protection is disabled** in Seerr -> Settings -> General.
 
     3. The `rest_command.seerrha_request_action` command exists in your
-    configuration (copy
-    [`examples/rest_commands.yaml`](https://github.com/vednolacni/SeerrHA/blob/main/examples/rest_commands.yaml))
-    and Home Assistant has been **restarted** once after adding it.
+    configuration. Copy
+    [`examples/rest_commands.yaml`](https://github.com/vednolacni/SeerrHA/blob/main/examples/rest_commands.yaml)
+    **unchanged** - the URL and key below are passed to it - and **restart**
+    Home Assistant once after adding it.
 
 
     The official integration only ships `get_requests`, `request_media` and
@@ -50,12 +51,36 @@ blueprint:
             entity:
               filter:
                 - domain: event
+        seerr_url:
+          name: Seerr URL
+          description: >-
+            Base URL of your Seerr server, e.g. `http://192.168.1.10:5055`.
+            **No trailing slash.** This is passed to the REST command, so
+            `rest_commands.yaml` needs no editing.
+          selector:
+            text:
+        seerr_api_key:
+          name: Seerr API key
+          description: >-
+            Seerr -> Settings -> General -> API Key.
+
+
+            **Note:** blueprint inputs are stored in plain text in
+            `automations.yaml` and appear in automation traces, so the key ends
+            up in backups and diagnostics. To keep it in `secrets.yaml` instead,
+            set the `X-Api-Key` header in your `rest_commands.yaml` to
+            `!secret seerr_api_key` and leave this field blank - the value below
+            is then ignored.
+          default: ""
+          selector:
+            text:
+              type: password
         rest_command_name:
           name: REST command
           description: >-
             Name of the rest_command that performs the approve/decline call. It
-            must accept the `request_id` and `cmd` variables. Slugs cannot
-            contain capital letters.
+            must accept the `base_url`, `api_key`, `request_id` and `cmd`
+            variables. Slugs cannot contain capital letters.
           default: rest_command.seerrha_request_action
           selector:
             text:
@@ -150,6 +175,8 @@ max: 10
 variables:
   notify_service: !input notify_service
   rest_command_name: !input rest_command_name
+  seerr_url: !input seerr_url
+  seerr_api_key: !input seerr_api_key
   approve_label: !input approve_label
   decline_label: !input decline_label
   notification_channel: !input notification_channel
@@ -228,6 +255,8 @@ actions:
           # instead of aborting the run silently.
           - action: "{{ rest_command_name }}"
             data:
+              base_url: "{{ seerr_url }}"
+              api_key: "{{ seerr_api_key }}"
               request_id: "{{ rid }}"
               cmd: "{{ cmd }}"
             response_variable: result

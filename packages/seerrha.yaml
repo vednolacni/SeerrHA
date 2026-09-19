@@ -9,8 +9,11 @@
 # Then restart Home Assistant - rest_command is not loaded until the key exists,
 # so there is nothing to reload the first time. Later edits: rest_command.reload.
 #
-# Replace IP_SEERR and the `phone` variable, and add `seerr_api_key` to
-# secrets.yaml.
+# Edit the three values under `variables:` in the automation below - the Seerr
+# URL, the API key and your notify service. Nothing else needs changing.
+#
+# Prefer the key in secrets.yaml? Set the X-Api-Key header below to
+# `!secret seerr_api_key`; the api_key variable is then ignored.
 #
 # This is the minimal version: notification in, decision out. The blueprint
 # (blueprints/automation/seerrha/) additionally offers configurable button
@@ -19,19 +22,19 @@
 
 rest_command:
   seerrha_request_action:
-    url: "http://IP_SEERR:5055/api/v1/request/{{ request_id }}/{{ cmd }}"
+    url: "{{ base_url }}/api/v1/request/{{ request_id }}/{{ cmd }}"
     method: POST
     headers:
-      X-Api-Key: !secret seerr_api_key
+      X-Api-Key: "{{ api_key }}"
       Content-Type: application/json
     payload: "{}"
 
   # Read-only smoke test: 200 on a valid key, whatever requests exist.
   seerrha_test:
-    url: "http://IP_SEERR:5055/api/v1/request?take=1"
+    url: "{{ base_url }}/api/v1/request?take=1"
     method: GET
     headers:
-      X-Api-Key: !secret seerr_api_key
+      X-Api-Key: "{{ api_key }}"
 
 automation:
   - alias: SeerrHA - request approval
@@ -39,6 +42,9 @@ automation:
     mode: queued
     max: 10
     variables:
+      # ---- the only three lines you need to edit ----
+      seerr_url: http://IP_SEERR:5055
+      seerr_api_key: YOUR_SEERR_API_KEY
       phone: notify.mobile_app_your_phone
     triggers:
       - trigger: state
@@ -99,6 +105,8 @@ automation:
                     {{ 'approve' if 'APPROVE' in trigger.event.data.action else 'decline' }}
               - action: rest_command.seerrha_request_action
                 data:
+                  base_url: "{{ seerr_url }}"
+                  api_key: "{{ seerr_api_key }}"
                   request_id: "{{ rid }}"
                   cmd: "{{ cmd }}"
                 response_variable: result

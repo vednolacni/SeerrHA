@@ -89,7 +89,7 @@ extra: []                    # TV only: [{name: "Requested Seasons", value: "3, 
 |---|---|---|
 | POST | `/api/v1/request/{id}/approve` | Approve a request |
 | POST | `/api/v1/request/{id}/decline` | Decline a request |
-| GET | `/api/v1/request/{id}` | Read one request |
+| GET | `/api/v1/request?take=1` | Smoke test: 200 on a valid key, whatever exists |
 
 Auth header: `X-Api-Key: <key>`. Default port: `5055`.
 
@@ -98,13 +98,18 @@ Auth header: `X-Api-Key: <key>`. Default port: `5055`.
 ```yaml
 rest_command:
   seerrha_request_action:
-    url: "http://IP_SEERR:5055/api/v1/request/{{ request_id }}/{{ cmd }}"
+    url: "{{ base_url }}/api/v1/request/{{ request_id }}/{{ cmd }}"
     method: POST
     headers:
-      X-Api-Key: !secret seerr_api_key
+      X-Api-Key: "{{ api_key }}"
       Content-Type: application/json
     payload: "{}"
 ```
+
+The command is fully parameterised: the caller passes `base_url`, `api_key`,
+`request_id` and `cmd`, so the file itself holds no configuration. Calling it
+without `base_url` or `api_key` produces an invalid URL or a 403. `!secret` is
+an opt-in alternative for the header, not the default.
 
 Constraints to respect when generating config:
 

@@ -2,6 +2,37 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.3.0] - 2026-09-19
+
+### Changed
+
+- **The Seerr URL and API key are blueprint inputs now.**
+  `examples/rest_commands.yaml` is copied unchanged: the command takes
+  `base_url` and `api_key` from the caller, so `IP_SEERR` and the `!secret`
+  lookup are gone from the file. Setup on the blueprint route no longer
+  involves editing any YAML.
+- The API key is no longer read from `secrets.yaml` by default. Keeping it
+  there is still supported and documented - set the `X-Api-Key` header to
+  `!secret seerr_api_key` and leave the blueprint field blank - but it is now
+  opt-in rather than required.
+- The package, the standalone example automation and the helper script gather
+  their settings into a `variables:` block at the top, so each has one place to
+  edit instead of values scattered through the file.
+
+### Notes
+
+- Blueprint inputs are stored in plain text in `automations.yaml` and appear in
+  automation traces, so the API key now reaches backups and diagnostics
+  downloads. This is a deliberate trade for a setup that needs no file editing;
+  the `!secret` route above avoids it.
+
+### Breaking
+
+- `rest_command.seerrha_request_action` and `seerrha_test` now require
+  `base_url` and `api_key` from the caller. Replace your `rest_commands.yaml`
+  with the new copy and re-open the automation to fill in the two new fields.
+  Calls made by hand need both values passed in `data`.
+
 ## [1.2.0] - 2026-09-19
 
 ### Fixed

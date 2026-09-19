@@ -53,24 +53,29 @@ POST /api/v1/request/{id}/decline
 
 ---
 
-## Step 2: Store the API key in secrets.yaml
+## Step 2: Get the API key
 
-Add to `config/secrets.yaml`:
+**Seerr** -> **Settings** -> **General** -> **API Key**. Keep it to hand - you
+paste it into the blueprint in step 4. Nothing to configure here.
 
-```yaml
-seerr_api_key: YOUR_API_KEY_HERE
-```
-
-Keeping the key out of `configuration.yaml` matters: anything in the main
-config ends up in every backup and in the integration diagnostics download.
+> **Where the key ends up.** Blueprint inputs are stored in plain text in
+> `automations.yaml` and show up in automation traces, so the key travels into
+> backups and diagnostics downloads. That is the trade for not hand-editing
+> YAML.
+>
+> To keep it out of there, set the `X-Api-Key` header in your
+> `rest_commands.yaml` to `!secret seerr_api_key`, add
+> `seerr_api_key: YOUR_KEY` to `config/secrets.yaml`, and leave the blueprint's
+> API key field blank. The command then reads the secret and ignores what the
+> blueprint passes.
 
 ---
 
 ## Step 3: Add the REST commands
 
 Copy [`examples/rest_commands.yaml`](../examples/rest_commands.yaml) to
-`config/rest_commands.yaml`, replace `IP_SEERR`, and include it from
-`configuration.yaml`:
+`config/rest_commands.yaml` **unchanged** - the URL and the key are passed in
+by the blueprint - and include it from `configuration.yaml`:
 
 ```yaml
 rest_command: !include rest_commands.yaml
@@ -109,6 +114,8 @@ Then **Create Automation** from the blueprint and fill in:
 | Input | Value |
 |---|---|
 | Seerr event entity | `event.overseerr_last_media_event` |
+| Seerr URL | e.g. `http://192.168.1.10:5055` - no trailing slash |
+| Seerr API key | from step 2, or blank if you went the `!secret` route |
 | REST command | `rest_command.seerrha_request_action` |
 | Notify service | your own, e.g. `notify.mobile_app_pixel_9` - `your_phone` is a placeholder |
 
@@ -131,7 +138,9 @@ matching your device.
 
 ```yaml
 action: rest_command.seerrha_test
-data: {}
+data:
+  base_url: "http://192.168.1.10:5055"
+  api_key: "YOUR_API_KEY"
 ```
 
 This reads one request and changes nothing. A `200` means the key works. A
@@ -143,6 +152,8 @@ This reads one request and changes nothing. A `200` means the key works. A
 ```yaml
 action: rest_command.seerrha_request_action
 data:
+  base_url: "http://192.168.1.10:5055"
+  api_key: "YOUR_API_KEY"
   request_id: 35
   cmd: approve
 ```

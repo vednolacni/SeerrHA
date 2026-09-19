@@ -38,7 +38,7 @@ standalone files are only needed on the package route.
 
 | File | Description |
 |:---|:---|
-| **[`rest_commands.yaml`](rest_commands.yaml)** | The `approve` / `decline` REST commands plus a read-only smoke test, ready for `rest_command: !include rest_commands.yaml`. |
+| **[`rest_commands.yaml`](rest_commands.yaml)** | The `approve` / `decline` REST commands plus a read-only smoke test, ready for `rest_command: !include rest_commands.yaml`. Copy it unchanged - the URL and key are passed in by the caller. |
 | **[`packages/seerrha.yaml`](../packages/seerrha.yaml)** | Everything in one package file: REST commands and the automation. |
 
 ---

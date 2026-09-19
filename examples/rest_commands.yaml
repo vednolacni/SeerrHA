@@ -3,6 +3,10 @@
 # Include from configuration.yaml with:
 #   rest_command: !include rest_commands.yaml
 #
+# Copy this file as-is. There is nothing to edit: the server URL and the API
+# key are passed in by the caller (the blueprint asks for both in its UI), so
+# the same file works for everyone.
+#
 # Do NOT repeat the `rest_command:` key inside this file and keep the command
 # names in column 0 - two extra spaces of indentation silently turn a command
 # into a sub-option of the previous one.
@@ -13,22 +17,29 @@
 # Adding the `rest_command:` key for the first time needs a restart. After that,
 # new or renamed commands are picked up by `rest_command.reload` - but NOT by
 # "Reload core configuration", which is a different thing.
+#
+# PREFER TO KEEP THE KEY IN secrets.yaml? Replace the X-Api-Key line below with
+#   X-Api-Key: !secret seerr_api_key
+# and add `seerr_api_key: YOUR_KEY` to secrets.yaml. The key the blueprint
+# passes is then simply ignored, and you can leave that field blank.
 
 # Approve or decline a request.
+#   base_url:   e.g. http://192.168.1.10:5055 (no trailing slash)
+#   api_key:    Seerr -> Settings -> General -> API Key
 #   request_id: numeric ID of the request
 #   cmd:        approve | decline
 seerrha_request_action:
-  url: "http://IP_SEERR:5055/api/v1/request/{{ request_id }}/{{ cmd }}"
+  url: "{{ base_url }}/api/v1/request/{{ request_id }}/{{ cmd }}"
   method: POST
   headers:
-    X-Api-Key: !secret seerr_api_key
+    X-Api-Key: "{{ api_key }}"
     Content-Type: application/json
   payload: "{}"
 
-# Read-only smoke test: verifies the API key without changing anything.
+# Read-only smoke test: verifies the URL and key without changing anything.
 # Returns 200 on a valid key whether or not any requests exist.
 seerrha_test:
-  url: "http://IP_SEERR:5055/api/v1/request?take=1"
+  url: "{{ base_url }}/api/v1/request?take=1"
   method: GET
   headers:
-    X-Api-Key: !secret seerr_api_key
+    X-Api-Key: "{{ api_key }}"

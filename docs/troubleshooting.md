@@ -89,6 +89,25 @@ Listen to the event first: **Developer Tools** -> **Events** -> listen to
 
 ---
 
+### `InvalidURL` or the call goes to the wrong host
+
+The REST command builds its URL from the `base_url` the caller passes. Calling
+`rest_command.seerrha_request_action` by hand without `base_url` leaves a bare
+path, which is not a valid URL. Pass it explicitly:
+
+```yaml
+action: rest_command.seerrha_request_action
+data:
+  base_url: "http://192.168.1.10:5055"
+  api_key: "YOUR_API_KEY"
+  request_id: 35
+  cmd: approve
+```
+
+A trailing slash on the URL gives a doubled `//` in the path - drop it.
+
+---
+
 ### The notification disappears before I can decide
 
 Set `sticky: true` in the notification data (Android). Without it a swipe
@@ -171,9 +190,15 @@ like it worked.
 ### Everything returns 403
 
 1. Check the key: **Seerr** -> **Settings** -> **General** -> **API Key**.
-2. Check that **CSRF Protection is disabled** in Seerr settings.
-3. Check that the `rest_command` block actually loaded - see the slug error
+2. Check the **Seerr API key** field in the automation. The key is a blueprint
+   input now, so a typo there produces a 403 even though `secrets.yaml` is
+   fine. Re-open the automation and re-paste it.
+3. Check that **CSRF Protection is disabled** in Seerr settings.
+4. Check that the `rest_command` block actually loaded - see the slug error
    above. Stale in-memory definitions with an old key produce exactly this.
+
+An empty key gives the same 403. That happens if you left the field blank
+*without* switching the `X-Api-Key` header to `!secret seerr_api_key`.
 
 ---
 

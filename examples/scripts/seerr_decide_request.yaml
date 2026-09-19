@@ -8,6 +8,11 @@ description: Approve or decline a Seerr request by its numeric ID
 mode: parallel
 max: 10
 
+variables:
+  # ---- edit these two ----
+  seerr_url: http://IP_SEERR:5055
+  seerr_api_key: YOUR_SEERR_API_KEY
+
 fields:
   request_id:
     name: Request ID
@@ -32,6 +37,8 @@ fields:
 sequence:
   - action: rest_command.seerrha_request_action
     data:
+      base_url: "{{ seerr_url }}"
+      api_key: "{{ seerr_api_key }}"
       request_id: "{{ request_id }}"
       cmd: "{{ decision }}"
     response_variable: result
