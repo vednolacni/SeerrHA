@@ -117,16 +117,25 @@ Then **Create Automation** from the blueprint and fill in:
 | Seerr URL | e.g. `http://192.168.1.10:5055` - no trailing slash |
 | Seerr API key | from step 2, or blank if you went the `!secret` route |
 | REST command | `rest_command.seerrha_request_action` |
-| Notify service | your own, e.g. `notify.mobile_app_pixel_9` - `your_phone` is a placeholder |
+| Phone | pick your device from the list |
 
-### Finding your notify service
+### Phone, or notify service?
 
-**Developer Tools** -> **Actions** -> search `notify.mobile_app`. Pick the one
-matching your device.
+**Phone** is a device picker listing only devices that run the Companion app,
+so there is nothing to type and nothing to get wrong. Use it unless you need
+something it cannot express.
 
-> A notify **entity** (`notify.your_phone`) is not the same thing. Entities
-> only support `send_message` - no image, no action buttons. You need the
-> `notify.mobile_app_*` **action**.
+**Notify service (advanced)** overrides it, and is there for one case: a
+notification **group** covering several phones, e.g. `notify.all_phones`. Find
+service names under **Developer Tools** -> **Actions** -> `notify.mobile_app`.
+
+> If you use the advanced field, a notify **entity** (`notify.your_phone`) is
+> not the same thing. Entities only support `send_message` - no image, no action
+> buttons. You need the `notify.mobile_app_*` **action**.
+
+> The blueprint derives the service from the device's *registered* name. If you
+> renamed the phone inside the Companion app and notifications stop arriving,
+> put the real service name in the advanced field.
 
 ---
 

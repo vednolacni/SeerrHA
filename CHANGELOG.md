@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 ## [1.3.0] - 2026-09-19
 
+### Added
+
+- Blueprint input **Phone**: a device picker listing only devices running the
+  Companion app. A plain text selector never offers suggestions, so the notify
+  service had to be typed from memory. **Notify service** is still there as
+  **Notify service (advanced)** and takes priority when set, for the one case
+  the picker cannot express - a notification group covering several phones.
+
 ### Changed
 
 - **The Seerr URL and API key are blueprint inputs now.**

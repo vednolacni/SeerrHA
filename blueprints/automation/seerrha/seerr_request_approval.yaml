@@ -89,18 +89,35 @@ blueprint:
       icon: mdi:cellphone-message
       collapsed: false
       input:
-        notify_service:
-          name: Notify service
+        notify_device:
+          name: Phone
           description: >-
-            The **service** of the Companion app, e.g.
-            `notify.mobile_app_pixel_9`. A notify *entity*
-            (`notify.pixel_9`) only supports `send_message` and cannot render
-            images or action buttons.
+            The phone that gets the notification. Only devices running the
+            Home Assistant Companion app are listed.
 
 
-            For several phones, point this at one notification **group** rather
-            than creating a second automation from this blueprint - see
-            "Action prefix" below for why.
+            Leave this empty if you fill in **Notify service** below instead.
+          default: ""
+          selector:
+            device:
+              filter:
+                - integration: mobile_app
+        notify_service:
+          name: Notify service (advanced)
+          description: >-
+            Use instead of **Phone** when you need something the picker cannot
+            express - typically a notification **group** covering several
+            phones, e.g. `notify.all_phones`. Takes priority when both are set.
+
+
+            It must be a notify **service** (`notify.mobile_app_pixel_9`), not a
+            notify *entity* (`notify.pixel_9`) - entities only support
+            `send_message` and cannot render images or action buttons.
+
+
+            For several phones prefer one group here over creating a second
+            automation from this blueprint - see "Action prefix" below for why.
+          default: ""
           selector:
             text:
         approve_label:
@@ -173,7 +190,15 @@ mode: queued
 max: 10
 
 variables:
+  notify_device: !input notify_device
   notify_service: !input notify_service
+  # The explicit service wins; otherwise derive it from the picked device.
+  # device_attr(..., 'name') is the name the app registered with, which is what
+  # the mobile_app notify service is named after - renaming the device in the
+  # Home Assistant UI sets `name_by_user` and does not change the service.
+  notify_target: >-
+    {{ notify_service if notify_service else
+       'notify.mobile_app_' ~ (device_attr(notify_device, 'name') | slugify) }}
   rest_command_name: !input rest_command_name
   seerr_url: !input seerr_url
   seerr_api_key: !input seerr_api_key
@@ -224,7 +249,7 @@ actions:
                 {{ trigger.to_state.attributes.extra
                    | selectattr('name', 'eq', 'Requested Seasons')
                    | map(attribute='value') | first | default('', true) }}
-          - action: "{{ notify_service }}"
+          - action: "{{ notify_target }}"
             data:
               title: "{{ title }}"
               message: >-
@@ -274,7 +299,7 @@ actions:
                   - condition: template
                     value_template: "{{ ok }}"
                 sequence:
-                  - action: "{{ notify_service }}"
+                  - action: "{{ notify_target }}"
                     data:
                       message: clear_notification
                       data:
@@ -283,7 +308,7 @@ actions:
                       - condition: template
                         value_template: "{{ confirm_decision }}"
                     then:
-                      - action: "{{ notify_service }}"
+                      - action: "{{ notify_target }}"
                         data:
                           title: Seerr
                           message: >-
@@ -296,7 +321,7 @@ actions:
             # The POST failed. Say so and leave the original notification up,
             # because the request is still sitting in Seerr undecided.
             default:
-              - action: "{{ notify_service }}"
+              - action: "{{ notify_target }}"
                 data:
                   title: Seerr - decision failed
                   message: >-
@@ -319,7 +344,7 @@ actions:
           - variables:
               title: "{{ trigger.to_state.attributes.subject }}"
               poster: "{{ trigger.to_state.attributes.entity_picture }}"
-          - action: "{{ notify_service }}"
+          - action: "{{ notify_target }}"
             data:
               title: "{{ title }}"
               message: Ready to watch.

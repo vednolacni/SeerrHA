@@ -98,7 +98,8 @@ creates that entity with exactly that name.
 | **Seerr URL** | - | e.g. `http://192.168.1.10:5055`, no trailing slash |
 | **Seerr API key** | - | Seerr -> Settings -> General -> API Key. See the note below |
 | **REST command** | `rest_command.seerrha_request_action` | Command that performs the approve/decline call |
-| **Notify service** | - | The Companion **action**, e.g. `notify.mobile_app_your_phone` |
+| **Phone** | - | Device picker, listing only phones running the Companion app |
+| **Notify service (advanced)** | - | Overrides **Phone**. For a notification group covering several phones |
 | **Approve / Decline labels** | `Approve` / `Decline` | Button text |
 | **Notification channel** | `Seerr` | Android channel for grouping and per-channel sounds |
 | **Sticky notification** | `true` | Keep the notification until a button is pressed (Android) |
@@ -109,8 +110,8 @@ creates that entity with exactly that name.
 > **One automation, not one per phone.** The button press arrives as an event
 > with no device information, so every automation built from this blueprint
 > reacts to every press - two of them would send the decision to Seerr twice.
-> Point **Notify service** at a notification **group** covering all your
-> phones, or give each automation its own **Action prefix**.
+> Put a notification **group** covering all your phones in **Notify service
+> (advanced)**, or give each automation its own **Action prefix**.
 
 If the POST fails, the notification is **not** cleared and you get an error with
 the HTTP status instead, because the request is still sitting in Seerr
@@ -123,9 +124,10 @@ undecided.
 > leave the blueprint field blank - the command reads the secret and ignores
 > what the blueprint passes.
 
-> **Notify service, not notify entity.** `notify.your_phone` (entity) supports
-> only `send_message` - no images, no buttons. You need the
-> `notify.mobile_app_*` action.
+> **If you use the advanced field: service, not entity.** `notify.your_phone`
+> (entity) supports only `send_message` - no images, no buttons. You need the
+> `notify.mobile_app_*` action. The **Phone** picker always resolves to the
+> right one, so prefer it.
 
 ## Documentation
 
