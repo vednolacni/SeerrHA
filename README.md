@@ -16,8 +16,8 @@ Not a custom component - plain configuration that adds the one action the integr
 
 [Setup](docs/setup.md) &middot; [Examples](examples/README.md) &middot; [Troubleshooting](docs/troubleshooting.md) &middot; [Event reference](docs/event-reference.md)
 
-<img src="docs/images/notification-request.jpg" alt="A new request on the lock screen, with poster art and Approve and Decline buttons" width="320">
-<img src="docs/images/notification-result.jpg" alt="Confirmation notification once the decision reaches Seerr" width="320">
+<img src="docs/images/notification-request.webp" alt="A new request on the lock screen, with poster art and Approve and Decline buttons" width="300">
+<img src="docs/images/notification-result.webp" alt="Confirmation notification once the decision reaches Seerr" width="300">
 
 </div>
 
