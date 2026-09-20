@@ -1,22 +1,36 @@
+<div align="center">
+
+<img src="docs/images/logo.png" alt="" width="150">
+
 # SeerrHA
+
+### Approve or decline Seerr requests straight from a mobile notification.
 
 [![Home Assistant][ha-badge]][ha-url]
 [![Blueprint][blueprint-badge]][blueprint-url]
 [![License][license-badge]](LICENSE)
 
-Approve or decline Seerr requests straight from a mobile notification.
+Built for Home Assistant with the official **Seerr** (`overseerr`) integration.<br>
+Not a custom component - plain configuration that adds the one action the integration is missing.
+
+[Setup](docs/setup.md) &middot; [Examples](examples/README.md) &middot; [Troubleshooting](docs/troubleshooting.md) &middot; [Event reference](docs/event-reference.md)
+
+<img src="docs/images/notification-request.jpg" alt="A new request on the lock screen, with poster art and Approve and Decline buttons" width="320">
+<img src="docs/images/notification-result.jpg" alt="Confirmation notification once the decision reaches Seerr" width="320">
+
+</div>
+
+---
 
 A push notification arrives on your phone the moment someone requests something
 in Seerr - with the poster, the requester's name and **Approve** / **Decline**
 buttons. Pressing a button sends the decision back to Seerr.
 
-**Built for: Home Assistant with the official Seerr integration.**
-
-SeerrHA is not a custom component and not a replacement for that integration -
-it is plain Home Assistant configuration that adds the one thing the integration
-does not have: **approving and declining requests**. The integration ships only
-`get_requests`, `request_media` and `search_media`, so the decision goes out
-through `rest_command` straight to the Seerr REST API.
+SeerrHA is not a custom component and not a replacement for the official
+integration - it is plain Home Assistant configuration that adds the one thing
+the integration does not have: **approving and declining requests**. The
+integration ships only `get_requests`, `request_media` and `search_media`, so
+the decision goes out through `rest_command` straight to the Seerr REST API.
 
 > Older guides reach for `overseerr.update_request`. That was a service of the
 > `vaparr/ha-overseerr` custom component, not of the official integration, and
