@@ -75,15 +75,6 @@ blueprint:
           selector:
             text:
               type: password
-        rest_command_name:
-          name: REST command
-          description: >-
-            Name of the rest_command that performs the approve/decline call. It
-            must accept the `base_url`, `api_key`, `request_id` and `cmd`
-            variables. Slugs cannot contain capital letters.
-          default: rest_command.seerrha_request_action
-          selector:
-            text:
     notification_settings:
       name: Notification
       icon: mdi:cellphone-message
@@ -105,9 +96,10 @@ blueprint:
         notify_service:
           name: Notify service (advanced)
           description: >-
-            Use instead of **Phone** when you need something the picker cannot
-            express - typically a notification **group** covering several
-            phones, e.g. `notify.all_phones`. Takes priority when both are set.
+            **Leave this empty if you picked a Phone above.** It is only for the
+            one thing the picker cannot express: a notification **group**
+            covering several phones, e.g. `notify.all_phones`. Takes priority
+            when both are set.
 
 
             It must be a notify **service** (`notify.mobile_app_pixel_9`), not a
@@ -199,7 +191,6 @@ variables:
   notify_target: >-
     {{ notify_service if notify_service else
        'notify.mobile_app_' ~ (device_attr(notify_device, 'name') | slugify) }}
-  rest_command_name: !input rest_command_name
   seerr_url: !input seerr_url
   seerr_api_key: !input seerr_api_key
   approve_label: !input approve_label
@@ -278,7 +269,7 @@ actions:
                 {{ 'approve' if 'APPROVE' in trigger.event.data.action else 'decline' }}
           # continue_on_error so a connection error still reports back
           # instead of aborting the run silently.
-          - action: "{{ rest_command_name }}"
+          - action: rest_command.seerrha_request_action
             data:
               base_url: "{{ seerr_url }}"
               api_key: "{{ seerr_api_key }}"

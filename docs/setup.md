@@ -116,7 +116,6 @@ Then **Create Automation** from the blueprint and fill in:
 | Seerr event entity | `event.overseerr_last_media_event` |
 | Seerr URL | e.g. `http://192.168.1.10:5055` - no trailing slash |
 | Seerr API key | from step 2, or blank if you went the `!secret` route |
-| REST command | `rest_command.seerrha_request_action` |
 | Phone | pick your device from the list |
 
 ### Phone, or notify service?

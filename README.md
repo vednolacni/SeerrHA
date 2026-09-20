@@ -112,9 +112,8 @@ creates that entity with exactly that name.
 | **Seerr event entity** | `event.overseerr_last_media_event` | The event entity created by the integration |
 | **Seerr URL** | - | e.g. `http://192.168.1.10:5055`, no trailing slash |
 | **Seerr API key** | - | Seerr -> Settings -> General -> API Key. See the note below |
-| **REST command** | `rest_command.seerrha_request_action` | Command that performs the approve/decline call |
 | **Phone** | - | Device picker, listing only phones running the Companion app |
-| **Notify service (advanced)** | - | Overrides **Phone**. For a notification group covering several phones |
+| **Notify service (advanced)** | - | Leave empty unless you need a notification group covering several phones |
 | **Approve / Decline labels** | `Approve` / `Decline` | Button text |
 | **Notification channel** | `Seerr` | Android channel for grouping and per-channel sounds |
 | **Sticky notification** | `true` | Keep the notification until a button is pressed (Android) |

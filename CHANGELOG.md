@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.4.0] - 2026-09-20
+
+### Removed
+
+- Blueprint input **REST command**. Now that the Seerr URL is an input, a
+  single `rest_command.seerrha_request_action` serves every server, so the name
+  never needed changing - it was a field to scroll past. The action is
+  hardcoded. Automations that left it at the default are unaffected; one that
+  set it explicitly must be re-created.
+
+### Changed
+
+- **Notify service (advanced)** now opens with "leave this empty if you picked
+  a Phone above", instead of leaving people wondering whether both are needed.
+
 ## [1.3.0] - 2026-09-19
 
 ### Added
