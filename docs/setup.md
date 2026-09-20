@@ -10,7 +10,7 @@ Approve / Decline notification on your phone.
 | Requirement | Why |
 |---|---|
 | Seerr (Overseerr / Jellyseerr) reachable from Home Assistant | Source of the requests and target of the approve/decline calls |
-| Official **[Seerr integration](https://www.home-assistant.io/integrations/overseerr/)** (`overseerr`) | Registers the webhook and creates `event.overseerr_last_media_event` |
+| Official **[Seerr integration](https://www.home-assistant.io/integrations/overseerr/)** (`overseerr`) | Registers the webhook and creates the `..._last_media_event` entity |
 | **CSRF Protection disabled** in Seerr | The integration cannot register its webhook while CSRF protection is on |
 | Home Assistant Companion app (Android or iOS) | Actionable notifications with image and buttons |
 | Home Assistant 2024.12 or newer | `overseerr` integration and the `triggers:` / `actions:` automation syntax |
@@ -113,7 +113,7 @@ Then **Create Automation** from the blueprint and fill in:
 
 | Input | Value |
 |---|---|
-| Seerr event entity | `event.overseerr_last_media_event` |
+| Seerr event entity | pick the `..._last_media_event` entity from the list |
 | Seerr URL | e.g. `http://192.168.1.10:5055` - no trailing slash |
 | Seerr API key | from step 2, or blank if you went the `!secret` route |
 | Phone | pick your device from the list |

@@ -8,6 +8,11 @@ event.overseerr_last_media_event
 
 The Seerr integration updates it every time its webhook fires.
 
+> **The entity id follows your config entry**, so yours may be
+> `event.seerr_last_media_event`, `event.server_seerr_last_media_event` or
+> similar. `event.overseerr_last_media_event` is used throughout these docs as
+> the example. Check **Developer Tools** -> **States** for the real one.
+
 ---
 
 ## Attribute structure

@@ -41,11 +41,11 @@ the decision goes out through `rest_command` straight to the Seerr REST API.
 
 - 📲 **Actionable push notifications**: poster art, title, requester and season list in one notification
 - ✅ **Approve / Decline from the lock screen**: the decision is POSTed straight to the Seerr API
-- 🧩 **Importable blueprint**: notify service, button labels and extras configured in the UI
+- 🧩 **Importable blueprint**: phone picker, Seerr URL, key and button labels all set in the UI
 - 📦 **One-file package**: `packages/seerrha.yaml` carries the REST commands and the automation together
 - 🖼️ **No TMDB lookups**: the poster URL already arrives in `entity_picture`
 - 📺 **TV-aware**: requested seasons are pulled out of the `extra` list and shown in the message
-- 🔔 **Auto-dismiss**: the notification clears itself on both devices once a decision is made
+- 🔔 **Auto-dismiss**: the prompt clears itself once the decision reaches Seerr
 - 🚦 **Honest about failure**: a rejected POST keeps the prompt up and reports the status instead of claiming success
 - 🧵 **`mode: queued`**: several requests at once, none dropped
 - 🔐 **No file editing**: the Seerr URL and API key are blueprint inputs, not hand-edited YAML
@@ -56,7 +56,7 @@ the decision goes out through `rest_command` straight to the Seerr REST API.
 | Requirement | Why |
 |---|---|
 | Home Assistant 2024.12+ | `overseerr` integration and the `triggers:` / `actions:` automation syntax |
-| Official **[Seerr integration](https://www.home-assistant.io/integrations/overseerr/)** | Registers the webhook and creates `event.overseerr_last_media_event` |
+| Official **[Seerr integration](https://www.home-assistant.io/integrations/overseerr/)** | Registers the webhook and creates the `..._last_media_event` entity |
 | **CSRF Protection disabled** in Seerr | The integration cannot register its webhook while CSRF protection is on |
 | Seerr API key | Seerr -> Settings -> General -> API Key |
 | Companion app (Android / iOS) | Notifications with images and action buttons |
@@ -103,14 +103,17 @@ package and the standalone examples carry them as placeholders instead.
 | `YOUR_SEERR_API_KEY` | Your Seerr API key | **Seerr** -> **Settings** -> **General** -> **API Key** |
 | `YOUR_CONFIG_ENTRY_ID` | The Seerr integration's config entry ID (only the pending-requests reminder needs it) | Build the action once in **Developer Tools** -> **Actions** -> **Seerr: Get requests**, then switch to YAML mode and copy it |
 
-`event.overseerr_last_media_event` is **not** a placeholder - the integration
-creates that entity with exactly that name.
+**The event entity is not always `event.overseerr_last_media_event`.** The
+integration names it after the config entry, so it can be
+`event.seerr_last_media_event`, `event.server_seerr_last_media_event` and so
+on. The blueprint gives you an entity picker - take whichever
+`..._last_media_event` it offers rather than typing the one in these docs.
 
 ## Blueprint Options
 
 | Input | Default | Description |
 |---|---|---|
-| **Seerr event entity** | `event.overseerr_last_media_event` | The event entity created by the integration |
+| **Seerr event entity** | `event.overseerr_last_media_event` | Pick from the list - the real name follows your config entry |
 | **Seerr URL** | - | e.g. `http://192.168.1.10:5055`, no trailing slash |
 | **Seerr API key** | - | Seerr -> Settings -> General -> API Key. See the note below |
 | **Phone** | - | Device picker, listing only phones running the Companion app |

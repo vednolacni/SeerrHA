@@ -48,9 +48,13 @@ blueprint:
         event_entity:
           name: Seerr event entity
           description: >-
-            The event entity created by the Seerr integration. The integration
-            registers and overwrites the webhook in Seerr on every reload - do
-            not edit that webhook by hand.
+            The event entity created by the Seerr integration. Its id follows
+            your config entry, so it may not be the default shown here - pick
+            whichever `..._last_media_event` entity the list offers.
+
+
+            The integration registers and overwrites the webhook in Seerr on
+            every reload - do not edit that webhook by hand.
           default: event.overseerr_last_media_event
           selector:
             entity:

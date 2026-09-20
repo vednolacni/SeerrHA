@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file.
 
 ## [1.5.0] - 2026-09-20
 
+### Fixed
+
+- The docs asserted that the integration always creates
+  `event.overseerr_last_media_event`, and the README called it "not a
+  placeholder". It is derived from the config entry title, so real installs see
+  `event.seerr_last_media_event`, `event.server_seerr_last_media_event` and
+  others. Anyone typing the documented name instead of picking from the list
+  got an automation that never fired. The docs now say the id varies and to
+  pick it; `llms.txt` warns assistants not to hardcode it.
+
 ### Removed
 
 - **Notify when media becomes available**, the standalone

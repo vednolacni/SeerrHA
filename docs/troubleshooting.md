@@ -206,7 +206,9 @@ An empty key gives the same 403. That happens if you left the field blank
 
 ### No events arrive at all
 
-1. Confirm `event.overseerr_last_media_event` exists and is not `unavailable`.
+1. Confirm the event entity exists and is not `unavailable`. Its id follows
+   your config entry - search `last_media_event` in **Developer Tools** ->
+   **States** rather than assuming the name used in these docs.
 2. Confirm **CSRF Protection is disabled** - the integration cannot register its
    webhook otherwise.
 3. Reload the Seerr integration: it re-registers the webhook in Seerr on every

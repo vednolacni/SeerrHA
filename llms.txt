@@ -42,6 +42,11 @@ integration cannot register its webhook and the REST calls return 403.
 
 Entity: `event.overseerr_last_media_event`
 
+The id is derived from the config entry title, so it varies per install
+(`event.seerr_last_media_event`, `event.server_seerr_last_media_event`, ...).
+Never hardcode it in generated config without saying it must be checked; in a
+blueprint, use an `entity` selector.
+
 Attributes are **nested dictionaries**, not flattened keys:
 
 ```yaml
