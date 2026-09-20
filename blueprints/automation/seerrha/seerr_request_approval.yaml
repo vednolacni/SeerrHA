@@ -1,6 +1,11 @@
 blueprint:
   name: SeerrHA - Approve or decline Seerr requests
   description: >-
+    <a href="https://github.com/vednolacni/SeerrHA"><img
+    src="https://raw.githubusercontent.com/vednolacni/SeerrHA/main/docs/images/logo-wide-auto.png"
+    alt="SeerrHA" width="300"></a>
+
+
     Sends an actionable mobile notification with poster art, requester name and
     **Approve** / **Decline** buttons whenever a new request lands in Seerr
     (Overseerr / Jellyseerr). Pressing a button POSTs the decision straight back

@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 
 ## [1.4.0] - 2026-09-20
 
+### Added
+
+- The blueprint description now opens with the logo, linked to the repository.
+  Home Assistant's markdown allows `img` (with `width`) and `a`, but not
+  `picture`, so the wordmark uses one indigo tone that stays legible on both
+  the light and dark themes rather than the black used on GitHub.
+
 ### Removed
 
 - Blueprint input **REST command**. Now that the Seerr URL is an input, a
