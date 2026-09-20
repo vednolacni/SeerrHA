@@ -118,7 +118,7 @@ creates that entity with exactly that name.
 | **Notification channel** | `Seerr` | Android channel for grouping and per-channel sounds |
 | **Sticky notification** | `true` | Keep the notification until a button is pressed (Android) |
 | **Confirmation notification** | `true` | Short follow-up confirming the POST went through |
-| **Notify when available** | `false` | Extra notification once the content is ready to watch |
+| **Notify when available** | `false` | Extra notification when Seerr reports `available` - but see the note below |
 | **Play script (optional)** | - | Adds a **Play** button to the "ready to watch" notification - see below |
 | **Action prefix** | `SEERR` | Only change it if you build a *second* automation from this blueprint - see below |
 
@@ -131,6 +131,13 @@ creates that entity with exactly that name.
 If the POST fails, the notification is **not** cleared and you get an error with
 the HTTP status instead, because the request is still sitting in Seerr
 undecided.
+
+> **"Notify when available" fires less often than you would expect.** Seerr
+> emits `MEDIA_AVAILABLE` from one place only: at approval time, when the file
+> is *already* in your library, where it replaces the approval notification. A
+> download that lands later marks the request complete silently - no
+> notification, nothing for Home Assistant to react to. So the option covers
+> re-requests of media you already have, not the download you are waiting on.
 
 > **Optional Play button.** Set **Play script** and the "ready to watch"
 > notification gains a **Play** button. The script is called with `item_id` set

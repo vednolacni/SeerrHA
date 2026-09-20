@@ -157,9 +157,15 @@ blueprint:
         notify_available:
           name: Notify when media becomes available
           description: >-
-            Send a notification when Seerr reports `available`, i.e. the content
-            is ready to play. Seerr decides when that is, so it arrives well
-            after the approval.
+            Send a notification when Seerr reports `available`.
+
+
+            **Seerr rarely sends this.** Its only `MEDIA_AVAILABLE` path runs at
+            approval time, and only when the file is *already* in your library -
+            it then replaces the approval notification. When a download lands
+            later, the library scan marks the request complete silently, with no
+            notification of any kind. So expect this for re-requests of media
+            you already have, and not for anything you actually wait on.
           default: false
           selector:
             boolean:

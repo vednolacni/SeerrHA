@@ -4,6 +4,17 @@ All notable changes to this project are documented in this file.
 
 ## [1.5.0] - 2026-09-20
 
+### Documentation
+
+- Documented that **Notify when media becomes available** fires far less often
+  than the name suggests. Seerr emits `MEDIA_AVAILABLE` from exactly one place,
+  `MediaRequest.notifyApprovedOrDeclined`, at approval time and only when the
+  media is already in the library - where it replaces the approval
+  notification. `availabilitySync`, the library scanners and the media entity
+  emit nothing, so a request completed by a later scan produces no event. The
+  option is still useful for re-requests of media you already hold; it is not a
+  download-finished alert, and no setting makes it one.
+
 ### Added
 
 - Optional **Play script** input. When set, the "ready to watch" notification

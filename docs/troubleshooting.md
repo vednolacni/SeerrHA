@@ -226,9 +226,24 @@ Admin accounts usually have auto-approve permission, so their requests arrive as
 
 ### The "available" notification arrives late, or not at all
 
-The file being in your media server is **not** enough. Seerr only emits
-`available` after its own library scan marks the request available, and it is
-that status change - not the file appearing - that fires the webhook.
+**Most likely, Seerr never sent one, and never will for that request.**
+
+Seerr has a single code path that emits `MEDIA_AVAILABLE`
+(`MediaRequest.notifyApprovedOrDeclined`): at approval time, when the media is
+*already* available, it sends an availability notification *instead of* the
+approval one. Nothing else emits it - not `availabilitySync`, not the library
+scanners, and there is no update hook on the media entity.
+
+So a download that lands after approval flips the request to complete
+**silently**. You will see `status: 5` in `overseerr.get_requests` and no event
+in Home Assistant, which is exactly what this looks like. Nothing is
+misconfigured and there is no setting that changes it.
+
+The option is still worth enabling: it fires when somebody requests something
+you already have, which is common enough. Just do not wait on it for a download
+in progress.
+
+Everything below applies if you want to confirm it on your own instance.
 
 Find out which half is stuck. **Developer Tools** -> **States** ->
 `event.overseerr_last_media_event`, and read `event_type`:
