@@ -2,6 +2,37 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.6.0] - 2026-09-20
+
+### Fixed
+
+- The "Overseerr webhook payload" link in the README was dead.
+  `docs.overseerr.dev` now redirects to `docs.seerr.dev` and that deep path is
+  gone; it points at
+  `https://docs.seerr.dev/using-seerr/notifications/webhook/` instead.
+
+### Changed
+
+- Rewrote the README as a landing page rather than a manual. It was 1,599 words
+  and 5,434px tall, with the one-click import badge at 41% depth - a visitor
+  arriving from a link scrolled four and a half screens past a full
+  configuration reference before reaching the button that installs the thing.
+
+  Now 1,016 words: the import badge sits in the hero and again after the install
+  steps, the Blueprint Options and Placeholders tables moved to `docs/setup.md`
+  (which already covered both), and the design rationale moved to
+  `docs/event-reference.md`, where the README already said it lived.
+
+- The hero states that Overseerr and Jellyseerr both work. The page never said
+  so on-page before, and a large share of the audience runs Jellyseerr.
+
+- CSRF and the API-key storage are presented as decisions with their scope and
+  their opt-out, rather than as two bare warnings 2,000px apart.
+
+- Prose: 63 bold spans became 0, six blockquotes became one, eleven feature
+  bullets became six, and the project's rationale is stated once instead of four
+  times.
+
 ## [1.5.0] - 2026-09-20
 
 ### Fixed

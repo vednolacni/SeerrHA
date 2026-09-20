@@ -142,6 +142,20 @@ The `tag` is still set (`seerr_35`) - it is what makes
 
 ## Design decisions
 
+### What changed against `vaparr/ha-overseerr`
+
+The wiki recipe this project grew from did three things differently, each for a
+reason that only showed up in use:
+
+- decisions go to the REST API, because the official integration has no
+  approve/decline action to call;
+- the request id travels in the action name (`SEERR_APPROVE_35`) rather than in
+  `tag`, which iOS does not send back;
+- action names carry a prefix, so they no longer collide with bare `approve` /
+  `deny` actions from other notifications on the same phone.
+
+---
+
 **The request ID lives in the action name**, not in `tag` - see above. It also
 carries a `SEERR_` prefix so it cannot collide with bare `approve` / `deny`
 actions from other notifications on the same phone.

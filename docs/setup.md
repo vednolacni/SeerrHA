@@ -111,12 +111,44 @@ https://github.com/vednolacni/SeerrHA/blob/main/blueprints/automation/seerrha/se
 
 Then **Create Automation** from the blueprint and fill in:
 
-| Input | Value |
-|---|---|
-| Seerr event entity | pick the `..._last_media_event` entity from the list |
-| Seerr URL | e.g. `http://192.168.1.10:5055` - no trailing slash |
-| Seerr API key | from step 2, or blank if you went the `!secret` route |
-| Phone | pick your device from the list |
+| Input | Default | What to put there |
+|---|---|---|
+| Seerr event entity | `event.overseerr_last_media_event` | Pick from the list - the real id follows your config entry |
+| Seerr URL | - | e.g. `http://192.168.1.10:5055`, no trailing slash |
+| Seerr API key | - | From step 2, or blank if you took the `!secret` route |
+| Phone | - | Device picker, listing only phones running the Companion app |
+| Notify service (advanced) | - | Leave empty unless you need a group covering several phones |
+| Approve / Decline labels | `Approve` / `Decline` | Button text |
+| Android notification channel | `Seerr` | Grouping and per-channel sounds |
+| Sticky notification | `true` | Keeps the prompt until a button is pressed (Android) |
+| Confirmation notification | `true` | Short follow-up once the POST goes through |
+| Action prefix | `SEERR` | Only change it if you build a *second* automation from this blueprint |
+
+### One automation, not one per phone
+
+The button press arrives as an event with no device information, so every
+automation built from this blueprint reacts to every press - two of them would
+send the decision to Seerr twice. Put a notification **group** covering all your
+phones in *Notify service (advanced)*, or give each automation its own
+*Action prefix*.
+
+### Placeholders in the YAML routes
+
+On the blueprint route you fill everything into the UI and edit no files. The
+package and the standalone examples carry placeholders instead:
+
+| Placeholder | Replace with | Where to find it |
+|---|---|---|
+| `notify.mobile_app_your_phone` | Your Companion **action**, e.g. `notify.mobile_app_pixel_9` | **Developer Tools** -> **Actions**, search `notify.mobile_app` |
+| `IP_SEERR` | Host or IP of your Seerr server | The address you open Seerr on (port `5055` by default) |
+| `YOUR_SEERR_API_KEY` | Your Seerr API key | **Seerr** -> **Settings** -> **General** -> **API Key** |
+| `YOUR_CONFIG_ENTRY_ID` | The integration's config entry id (only the pending-requests reminder needs it) | Build the action once in **Developer Tools** -> **Actions** -> **Seerr: Get requests**, switch to YAML mode and copy it |
+
+The event entity id is not fixed either. The integration names it after the
+config entry, so it may be `event.seerr_last_media_event`,
+`event.server_seerr_last_media_event` or similar - take whichever
+`..._last_media_event` the picker offers rather than typing the one used in
+these docs.
 
 ### Phone, or notify service?
 
