@@ -226,7 +226,29 @@ Admin accounts usually have auto-approve permission, so their requests arrive as
 
 ### The "available" notification arrives late, or not at all
 
-`available` is emitted by Seerr once it sees the finished item in your media
-library, which happens on its own schedule well after the approval. Nothing in
-Home Assistant influences that timing - if the event never fires, the question
-belongs on the Seerr side, not here.
+The file being in your media server is **not** enough. Seerr only emits
+`available` after its own library scan marks the request available, and it is
+that status change - not the file appearing - that fires the webhook.
+
+Find out which half is stuck. **Developer Tools** -> **States** ->
+`event.overseerr_last_media_event`, and read `event_type`:
+
+- **Still `approved`** (or whatever came last) - Seerr never sent the event, so
+  the automation was never triggered. Nothing is wrong in Home Assistant.
+- **`available`** - Seerr did send it. Now it is the automation: check its
+  trace, and that **Notify when media becomes available** is enabled.
+
+For the first case, push Seerr along: **Seerr** -> **Settings** -> **Jobs &
+Cache** -> run the *Recently Added Scan* for your media server. The
+notification lands within seconds of that job flipping the request.
+
+If the scan runs and the request still does not flip, the library holding the
+file is probably not enabled for synchronisation under **Seerr** ->
+**Settings** -> (your media server) -> **Libraries**. Seerr cannot mark media
+available that it never scans.
+
+> **4K vs non-4K are tracked separately.** `media.status` and `media.status4k`
+> are independent, and `available` fires for the version that was actually
+> requested. A request can sit at `status: pending` while `status4k: available`
+> shows "Available" in the Seerr UI - the 4K copy is there, the requested one
+> is not. Check `media.status` in the entity attributes, not the badge.
