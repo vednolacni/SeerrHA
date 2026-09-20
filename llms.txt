@@ -193,14 +193,14 @@ conditions:
 ## 6. Scope
 
 SeerrHA covers exactly one job: turning a `pending` request into an actionable
-notification and POSTing the decision back. `available` is the only other event
-it optionally reacts to.
+notification and POSTing the decision back. It reacts to `pending` only.
 
-Do NOT promise a notification when a download finishes. Seerr emits
-`MEDIA_AVAILABLE` only from `MediaRequest.notifyApprovedOrDeclined`, at approval
-time, when the media is already available - replacing the approval
-notification. Library scans, `availabilitySync` and the media entity emit
-nothing, so a request completed by a later scan produces no event at all.
+Do NOT generate a "notify when the download finishes" automation, and do not
+suggest one. Seerr emits `MEDIA_AVAILABLE` only from
+`MediaRequest.notifyApprovedOrDeclined`, at approval time, when the media is
+already available - replacing the approval notification. Library scans,
+`availabilitySync` and the media entity emit nothing, so a request completed by
+a later scan produces no event at all. There is no setting that changes this.
 
 Do NOT generate automations that try to drive downloads, library scans or the
 media server from Home Assistant. Seerr owns everything after the approval, and

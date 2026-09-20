@@ -79,8 +79,13 @@ Requested seasons only exist for TV requests and live in the `extra` list:
 | `available` | Content is ready to play - Seerr has seen it in the library |
 | `failed` | The download or import failed downstream of Seerr |
 
-Only `pending` (and optionally `available`) is acted on. The rest arrive on the
-same entity and are filtered out by the automation's condition.
+Only `pending` is acted on; the rest arrive on the same entity and are filtered
+out by the automation's condition.
+
+`available` is listed because the integration subscribes to it, not because it
+is useful: Seerr emits it only at approval time when the media is already in
+the library. See
+[Troubleshooting](troubleshooting.md#why-there-is-no-ready-to-watch-notification).
 
 ---
 
@@ -90,7 +95,7 @@ same entity and are filtered out by the automation's condition.
 |---|---|---|
 | `POST` | `/api/v1/request/{id}/approve` | Approve |
 | `POST` | `/api/v1/request/{id}/decline` | Decline |
-| `GET` | `/api/v1/request/{id}` | Read a single request (used by the smoke test) |
+| `GET` | `/api/v1/request?take=1` | Smoke test: 200 on a valid key, whatever exists |
 
 Authentication is the `X-Api-Key` header. All three need
 **CSRF Protection disabled** in Seerr.

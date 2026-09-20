@@ -15,14 +15,16 @@ Seerr requests from Home Assistant.
 | Recipe | Description | Trigger |
 |:---|:---|:---|
 | **[Request approval](automations/seerr_request_approval.yaml)** | Actionable notification with poster, requester and Approve/Decline buttons, plus the handler that POSTs the decision back to Seerr. | State (`event.overseerr_last_media_event`) + `mobile_app_notification_action` |
-| **[Media available notification](automations/seerr_available_notification.yaml)** | Notifies with poster art once a request flips to `available`. | State (`event_type == 'available'`) |
 | **[Pending requests reminder](automations/seerr_pending_reminder.yaml)** | Daily summary of requests still waiting for a decision, via `overseerr.get_requests` - no API key needed. | Time |
 
 The approval recipe is also available as an importable
 [**blueprint**](../blueprints/automation/seerrha/seerr_request_approval.yaml)
-with UI inputs for the notify service, button labels and optional extras. The
-blueprint also covers the "media available" recipe as an option, so those two
-standalone files are only needed on the package route.
+with UI inputs for the phone, button labels and optional extras.
+
+> There is no "media available" recipe. Seerr emits `MEDIA_AVAILABLE` only at
+> approval time, and only when the file is already in the library - a download
+> landing later completes the request silently. See
+> [Troubleshooting](../docs/troubleshooting.md) for the detail.
 
 ---
 

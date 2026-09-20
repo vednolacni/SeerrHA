@@ -154,42 +154,6 @@ blueprint:
           default: true
           selector:
             boolean:
-        notify_available:
-          name: Notify when media becomes available
-          description: >-
-            Send a notification when Seerr reports `available`.
-
-
-            **Seerr rarely sends this.** Its only `MEDIA_AVAILABLE` path runs at
-            approval time, and only when the file is *already* in your library -
-            it then replaces the approval notification. When a download lands
-            later, the library scan marks the request complete silently, with no
-            notification of any kind. So expect this for re-requests of media
-            you already have, and not for anything you actually wait on.
-          default: false
-          selector:
-            boolean:
-        play_script:
-          name: Play script (optional)
-          description: >-
-            Adds a **Play** button to the "ready to watch" notification. The
-            script is called with `item_id` set to the Jellyfin item id from the
-            event, so any script taking an `item_id` field works.
-
-
-            [JellyHA](https://github.com/zupancicmarko/JellyHA) ships one that
-            plays on an Android TV - its
-            `examples/scripts/card_action_play_on_wholpin.yaml`. SeerrHA does
-            not install it; add the script yourself, then pick it here.
-
-
-            The button only appears when this is set and the event carries a
-            Jellyfin id. Leave it empty to keep the plain notification.
-          default: ""
-          selector:
-            entity:
-              filter:
-                - domain: script
         action_prefix:
           name: Action prefix
           description: >-
@@ -230,9 +194,7 @@ variables:
   notification_channel: !input notification_channel
   sticky: !input sticky
   confirm_decision: !input confirm_decision
-  notify_available: !input notify_available
   action_prefix: !input action_prefix
-  play_script: !input play_script
 
 triggers:
   - trigger: state
@@ -249,8 +211,7 @@ conditions:
   - condition: template
     value_template: >-
       {{ (trigger.id == 'request'
-          and trigger.to_state.attributes.event_type in
-              (['pending', 'available'] if notify_available else ['pending']))
+          and trigger.to_state.attributes.event_type == 'pending')
          or (trigger.id == 'response'
           and trigger.event.data.action is string
           and trigger.event.data.action.startswith(action_prefix ~ '_')) }}
@@ -362,42 +323,3 @@ actions:
                     group: seerr
                     channel: "{{ notification_channel }}"
                     importance: high
-
-      # --- C: media became available (optional) ---
-      - conditions:
-          - condition: template
-            value_template: >-
-              {{ trigger.id == 'request'
-                 and trigger.to_state.attributes.event_type == 'available' }}
-        sequence:
-          - variables:
-              title: "{{ trigger.to_state.attributes.subject }}"
-              poster: "{{ trigger.to_state.attributes.entity_picture }}"
-              jid: >-
-                {{ trigger.to_state.attributes['media']['jellyfin_media_id']
-                   | default('', true) }}
-          - action: "{{ notify_target }}"
-            data:
-              title: "{{ title }}"
-              message: Ready to watch.
-              data:
-                image: "{{ poster }}"
-                group: seerr
-                channel: "{{ notification_channel }}"
-                importance: default
-                actions: >-
-                  {{ [{'action': action_prefix ~ '_PLAY_' ~ jid,
-                       'title': 'Play'}]
-                     if play_script and jid else [] }}
-
-      # --- D: Play pressed -> hand the Jellyfin id to the chosen script ---
-      - conditions:
-          - condition: template
-            value_template: >-
-              {{ trigger.id == 'response'
-                 and '_PLAY_' in trigger.event.data.action
-                 and play_script != '' }}
-        sequence:
-          - action: "{{ play_script }}"
-            data:
-              item_id: "{{ trigger.event.data.action.split('_')[2] }}"

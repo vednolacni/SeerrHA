@@ -224,7 +224,7 @@ Admin accounts usually have auto-approve permission, so their requests arrive as
 
 ---
 
-### The "available" notification arrives late, or not at all
+### Why there is no "ready to watch" notification
 
 **Most likely, Seerr never sent one, and never will for that request.**
 
@@ -239,11 +239,11 @@ So a download that lands after approval flips the request to complete
 in Home Assistant, which is exactly what this looks like. Nothing is
 misconfigured and there is no setting that changes it.
 
-The option is still worth enabling: it fires when somebody requests something
-you already have, which is common enough. Just do not wait on it for a download
-in progress.
+SeerrHA therefore does not offer one. An option that stays silent for every
+download you actually wait on is worse than no option, because you cannot tell
+it apart from a broken setup - which is exactly how this was found.
 
-Everything below applies if you want to confirm it on your own instance.
+To confirm it on your own instance:
 
 Find out which half is stuck. **Developer Tools** -> **States** ->
 `event.overseerr_last_media_event`, and read `event_type`:

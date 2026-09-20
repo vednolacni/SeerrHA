@@ -4,6 +4,23 @@ All notable changes to this project are documented in this file.
 
 ## [1.5.0] - 2026-09-20
 
+### Removed
+
+- **Notify when media becomes available**, the standalone
+  `seerr_available_notification.yaml` example, and the **Play script** input
+  that hung off that notification.
+
+  Seerr emits `MEDIA_AVAILABLE` from exactly one place,
+  `MediaRequest.notifyApprovedOrDeclined`: at approval time, and only when the
+  media is already in the library, where it replaces the approval
+  notification. `availabilitySync`, the library scanners and the media entity
+  emit nothing, so a download landing later completes the request in silence.
+
+  The option therefore stayed quiet for every case anyone would enable it for,
+  and was indistinguishable from a broken setup. The Play button depended on
+  that same notification, so it went with it. SeerrHA now reacts to `pending`
+  and nothing else - two branches instead of four.
+
 ### Documentation
 
 - Documented that **Notify when media becomes available** fires far less often
