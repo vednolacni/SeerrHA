@@ -2,6 +2,28 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.5.0] - 2026-09-20
+
+### Added
+
+- Optional **Play script** input. When set, the "ready to watch" notification
+  gains a **Play** button that calls the chosen script with `item_id` set to
+  the event's Jellyfin item id. Kept generic rather than tied to one project:
+  any script with an `item_id` field works, JellyHA's Android TV script being
+  the case it was built for.
+
+### Fixed
+
+- The Approve/Decline branch matched *any* notification action with the
+  configured prefix. Once a Play button existed, pressing it would have been
+  read as a decline - `'APPROVE' in action` is false - and POSTed against the
+  Jellyfin id as a request id. It now matches `_APPROVE_`/`_DECLINE_`
+  explicitly.
+- Troubleshooting said to read `media.status` from the entity attributes. Those
+  attributes are a frozen copy of the last webhook, not live state, so a stale
+  value there proves nothing. It now points at `overseerr.get_requests` for the
+  current status.
+
 ## [1.4.0] - 2026-09-20
 
 ### Added

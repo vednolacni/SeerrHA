@@ -119,6 +119,7 @@ creates that entity with exactly that name.
 | **Sticky notification** | `true` | Keep the notification until a button is pressed (Android) |
 | **Confirmation notification** | `true` | Short follow-up confirming the POST went through |
 | **Notify when available** | `false` | Extra notification once the content is ready to watch |
+| **Play script (optional)** | - | Adds a **Play** button to the "ready to watch" notification - see below |
 | **Action prefix** | `SEERR` | Only change it if you build a *second* automation from this blueprint - see below |
 
 > **One automation, not one per phone.** The button press arrives as an event
@@ -130,6 +131,15 @@ creates that entity with exactly that name.
 If the POST fails, the notification is **not** cleared and you get an error with
 the HTTP status instead, because the request is still sitting in Seerr
 undecided.
+
+> **Optional Play button.** Set **Play script** and the "ready to watch"
+> notification gains a **Play** button. The script is called with `item_id` set
+> to the Jellyfin item id carried by the event, so any script accepting an
+> `item_id` field works.
+> [JellyHA](https://github.com/zupancicmarko/JellyHA) ships one that plays on an
+> Android TV (`examples/scripts/card_action_play_on_wholpin.yaml`); add that
+> script to Home Assistant yourself, then pick it here. Without it, nothing
+> changes.
 
 > **Where the API key lives.** Blueprint inputs are stored in plain text in
 > `automations.yaml` and appear in automation traces, so the key reaches backups

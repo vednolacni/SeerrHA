@@ -250,5 +250,21 @@ available that it never scans.
 > **4K vs non-4K are tracked separately.** `media.status` and `media.status4k`
 > are independent, and `available` fires for the version that was actually
 > requested. A request can sit at `status: pending` while `status4k: available`
-> shows "Available" in the Seerr UI - the 4K copy is there, the requested one
-> is not. Check `media.status` in the entity attributes, not the badge.
+> makes the Seerr UI show "Available" - the 4K copy is there, the requested one
+> is not.
+
+**The entity attributes are frozen at the last event.** They are a copy of that
+webhook payload, not live state, so a stale `media.status: pending` tells you
+nothing about Seerr right now. For the current status, ask Seerr:
+
+```yaml
+action: overseerr.get_requests
+data:
+  config_entry_id: YOUR_CONFIG_ENTRY_ID
+  status: available
+```
+
+If your request is in that response, Seerr considers it available and the
+webhook is the problem. If it is not, Seerr has not matched the file yet - and
+a scan that changes nothing usually means the library is not synced, or the
+item in your media server has no TMDB match for Seerr to tie it to.

@@ -163,6 +163,27 @@ blueprint:
           default: false
           selector:
             boolean:
+        play_script:
+          name: Play script (optional)
+          description: >-
+            Adds a **Play** button to the "ready to watch" notification. The
+            script is called with `item_id` set to the Jellyfin item id from the
+            event, so any script taking an `item_id` field works.
+
+
+            [JellyHA](https://github.com/zupancicmarko/JellyHA) ships one that
+            plays on an Android TV - its
+            `examples/scripts/card_action_play_on_wholpin.yaml`. SeerrHA does
+            not install it; add the script yourself, then pick it here.
+
+
+            The button only appears when this is set and the event carries a
+            Jellyfin id. Leave it empty to keep the plain notification.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: script
         action_prefix:
           name: Action prefix
           description: >-
@@ -205,6 +226,7 @@ variables:
   confirm_decision: !input confirm_decision
   notify_available: !input notify_available
   action_prefix: !input action_prefix
+  play_script: !input play_script
 
 triggers:
   - trigger: state
@@ -263,10 +285,15 @@ actions:
                   - action: "{{ action_prefix }}_DECLINE_{{ rid }}"
                     title: "{{ decline_label }}"
 
-      # --- B: button pressed -> decision back to Seerr ---
+      # --- B: Approve/Decline pressed -> decision back to Seerr ---
+      # Must not match _PLAY_: 'APPROVE' not being in the action name would
+      # otherwise make it a decline, against the Jellyfin id as request_id.
       - conditions:
           - condition: template
-            value_template: "{{ trigger.id == 'response' }}"
+            value_template: >-
+              {{ trigger.id == 'response'
+                 and ('_APPROVE_' in trigger.event.data.action
+                      or '_DECLINE_' in trigger.event.data.action) }}
         sequence:
           - variables:
               rid: "{{ trigger.event.data.action.split('_')[2] }}"
@@ -340,6 +367,9 @@ actions:
           - variables:
               title: "{{ trigger.to_state.attributes.subject }}"
               poster: "{{ trigger.to_state.attributes.entity_picture }}"
+              jid: >-
+                {{ trigger.to_state.attributes['media']['jellyfin_media_id']
+                   | default('', true) }}
           - action: "{{ notify_target }}"
             data:
               title: "{{ title }}"
@@ -349,3 +379,19 @@ actions:
                 group: seerr
                 channel: "{{ notification_channel }}"
                 importance: default
+                actions: >-
+                  {{ [{'action': action_prefix ~ '_PLAY_' ~ jid,
+                       'title': 'Play'}]
+                     if play_script and jid else [] }}
+
+      # --- D: Play pressed -> hand the Jellyfin id to the chosen script ---
+      - conditions:
+          - condition: template
+            value_template: >-
+              {{ trigger.id == 'response'
+                 and '_PLAY_' in trigger.event.data.action
+                 and play_script != '' }}
+        sequence:
+          - action: "{{ play_script }}"
+            data:
+              item_id: "{{ trigger.event.data.action.split('_')[2] }}"
