@@ -1,8 +1,9 @@
 <div align="center">
 
-<img src="docs/images/logo.png" alt="" width="150">
-
-# SeerrHA
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/logo-wide-dark.png">
+  <img src="docs/images/logo-wide.png" alt="SeerrHA" width="440">
+</picture>
 
 ### Approve or decline Seerr requests straight from a mobile notification.
 
