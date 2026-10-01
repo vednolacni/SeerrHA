@@ -2,6 +2,14 @@
 #
 # Uses the official integration action `overseerr.get_requests` (which returns a
 # response) instead of the REST API, so no API key is needed here.
+#
+# `config_entry_id` is REQUIRED by the action. The easiest way to get it: build
+# this action once in Developer Tools -> Actions -> "Seerr: Get requests" with
+# the UI picker, switch to YAML mode and copy the value it filled in.
+#
+# Response shape (per request): `id`, `status`, `requested_by`, and `media`,
+# which the integration replaces with the full TMDB details - so the title is
+# `media.title` for movies and `media.name` for TV.
 
 alias: SeerrHA - pending requests reminder
 description: Once a day, list requests still waiting for a decision
@@ -14,6 +22,7 @@ triggers:
 actions:
   - action: overseerr.get_requests
     data:
+      config_entry_id: YOUR_CONFIG_ENTRY_ID
       status: pending
       sort_order: added
     response_variable: pending
@@ -23,9 +32,10 @@ actions:
     data:
       title: "Seerr: {{ pending.requests | count }} pending request(s)"
       message: >-
-        {{ pending.requests
-           | map(attribute='media.tmdb_id')
-           | join(', ') }}
+        {% for r in pending.requests %}
+        #{{ r.id }} {{ r.media.title | default(r.media.name, true) }}
+        - {{ r.requested_by.display_name }}
+        {% endfor %}
       data:
         group: seerr
         channel: Seerr

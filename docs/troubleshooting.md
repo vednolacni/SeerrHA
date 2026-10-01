@@ -39,10 +39,24 @@ the file must **not** repeat the `rest_command:` key.
 
 ### A new REST command does not exist after "Reload YAML"
 
-`rest_command` is only evaluated at startup. A new or renamed command requires a
-full **restart** of Home Assistant.
+You almost certainly used the wrong reload. **Reload core configuration** (and
+the old "Reload YAML configuration" button) does not touch `rest_command`.
 
-Automations are the opposite - they refresh as soon as you save them.
+`rest_command` does have its own reload. Use whichever you prefer:
+
+- **Developer Tools** -> **Actions** -> `rest_command.reload`
+- **Developer Tools** -> **YAML** -> **RESTful Command**
+- **Developer Tools** -> **YAML** -> **All YAML configuration**
+
+It drops every existing command and re-reads them from your configuration,
+`!include`s and all.
+
+**The one exception is the first time.** If `rest_command:` was not in
+`configuration.yaml` at the last startup, the integration was never loaded, so
+`rest_command.reload` does not exist yet either. That first time needs a real
+**restart**; after that, reloading is enough.
+
+Automations are different again - they refresh as soon as you save them.
 
 ---
 
@@ -52,9 +66,9 @@ Automations are the opposite - they refresh as soon as you save them.
 
 You are calling a notify **entity** instead of a notify **action**.
 
-- `notify.matic_s_phone` (entity) - supports only `send_message`. No image, no
+- `notify.your_phone` (entity) - supports only `send_message`. No image, no
   actions.
-- `notify.mobile_app_matic_s_phone` (action) - full Companion payload.
+- `notify.mobile_app_your_phone` (action) - full Companion payload.
 
 Find the right one under **Developer Tools** -> **Actions** ->
 `notify.mobile_app`.
@@ -75,10 +89,52 @@ Listen to the event first: **Developer Tools** -> **Events** -> listen to
 
 ---
 
+### `InvalidURL` or the call goes to the wrong host
+
+The REST command builds its URL from the `base_url` the caller passes. Calling
+`rest_command.seerrha_request_action` by hand without `base_url` leaves a bare
+path, which is not a valid URL. Pass it explicitly:
+
+```yaml
+action: rest_command.seerrha_request_action
+data:
+  base_url: "http://192.168.1.10:5055"
+  api_key: "YOUR_API_KEY"
+  request_id: 35
+  cmd: approve
+```
+
+A trailing slash on the URL gives a doubled `//` in the path - drop it.
+
+---
+
 ### The notification disappears before I can decide
 
 Set `sticky: true` in the notification data (Android). Without it a swipe
 dismisses it and the request stays pending.
+
+---
+
+### Changing the channel sound or importance does nothing
+
+Android notification channels are created once and are then **immutable** - the
+`importance` in the payload is only read when the channel first appears. After
+that, the channel is owned by Android and only the user can change it, under
+the Companion app's notification settings on the phone.
+
+To get a fresh channel from Home Assistant, set a different **Notification
+channel** name in the blueprint. The old one stays behind until you remove it
+on the phone.
+
+---
+
+### Every decision is sent to Seerr twice
+
+You have more than one automation built from the blueprint. The button press
+arrives as a plain event with no device information, so all of them react to
+it. Give each automation its own **Action prefix** (under *Optional extras*),
+or better, use one automation pointed at a notification **group** covering
+every phone.
 
 ---
 
@@ -119,50 +175,40 @@ your action runs. `mode: queued` keeps the runs in order, but only
 
 | Response | Meaning |
 |---|---|
-| `404` + `path: /api/v1/request//` | Empty `request_id` - you sent `data: {}` |
-| `404` + `Request not found.` | **The key is valid**, that request ID does not exist |
-| `403` + `You do not have permission` | Invalid API key |
 | `200` | Success |
+| `404` + `path: /api/v1/request//` | Empty `request_id` - you called the approve/decline command with `data: {}` |
+| `404` + `Request not found.` | **The key is valid**, that request ID does not exist |
+| `403` + `You do not have permission` | Invalid API key, or CSRF protection still on |
 
-The second `404` is a good sign: authentication succeeded.
+`rest_command` does not fail the automation on a `4xx`/`5xx` - it only logs a
+warning. That is why the automation reads `response_variable` and checks the
+status before clearing the notification; otherwise a failed approve would look
+like it worked.
 
 ---
 
 ### Everything returns 403
 
 1. Check the key: **Seerr** -> **Settings** -> **General** -> **API Key**.
-2. Check that **CSRF Protection is disabled** in Seerr settings.
-3. Check that the `rest_command` block actually loaded - see the slug error
+2. Check the **Seerr API key** field in the automation. The key is a blueprint
+   input now, so a typo there produces a 403 even though `secrets.yaml` is
+   fine. Re-open the automation and re-paste it.
+3. Check that **CSRF Protection is disabled** in Seerr settings.
+4. Check that the `rest_command` block actually loaded - see the slug error
    above. Stale in-memory definitions with an old key produce exactly this.
 
----
-
-## Seerr status issues
-
-### Status stuck on "Requested"
-
-The *Requested -> Available* transition does not come from Radarr. The chain is:
-
-```
-Radarr imports the file -> Jellyfin scans the library -> Seerr scans Jellyfin
-```
-
-With symlink-based setups Jellyfin often does not get a change notification and
-waits for its periodic scan, so a delay is not a bug.
-
-To force it:
-
-1. **Jellyfin** -> **Scan Libraries**.
-2. **Seerr** -> **Settings** -> **Jellyfin** -> **Sync Libraries**.
-
-If the status still does not move, the library is most likely not enabled for
-synchronisation in the Seerr settings.
+An empty key gives the same 403. That happens if you left the field blank
+*without* switching the `X-Api-Key` header to `!secret seerr_api_key`.
 
 ---
+
+## Event issues
 
 ### No events arrive at all
 
-1. Confirm `event.overseerr_last_media_event` exists and is not `unavailable`.
+1. Confirm the event entity exists and is not `unavailable`. Its id follows
+   your config entry - search `last_media_event` in **Developer Tools** ->
+   **States** rather than assuming the name used in these docs.
 2. Confirm **CSRF Protection is disabled** - the integration cannot register its
    webhook otherwise.
 3. Reload the Seerr integration: it re-registers the webhook in Seerr on every
@@ -177,3 +223,65 @@ synchronisation in the Seerr settings.
 
 Admin accounts usually have auto-approve permission, so their requests arrive as
 `auto_approved`, not `pending`. Test with a regular user account.
+
+---
+
+### Why there is no "ready to watch" notification
+
+**Most likely, Seerr never sent one, and never will for that request.**
+
+Seerr has a single code path that emits `MEDIA_AVAILABLE`
+(`MediaRequest.notifyApprovedOrDeclined`): at approval time, when the media is
+*already* available, it sends an availability notification *instead of* the
+approval one. Nothing else emits it - not `availabilitySync`, not the library
+scanners, and there is no update hook on the media entity.
+
+So a download that lands after approval flips the request to complete
+**silently**. You will see `status: 5` in `overseerr.get_requests` and no event
+in Home Assistant, which is exactly what this looks like. Nothing is
+misconfigured and there is no setting that changes it.
+
+SeerrHA therefore does not offer one. An option that stays silent for every
+download you actually wait on is worse than no option, because you cannot tell
+it apart from a broken setup - which is exactly how this was found.
+
+To confirm it on your own instance:
+
+Find out which half is stuck. **Developer Tools** -> **States** ->
+`event.overseerr_last_media_event`, and read `event_type`:
+
+- **Still `approved`** (or whatever came last) - Seerr never sent the event, so
+  the automation was never triggered. Nothing is wrong in Home Assistant.
+- **`available`** - Seerr did send it. Now it is the automation: check its
+  trace, and that **Notify when media becomes available** is enabled.
+
+For the first case, push Seerr along: **Seerr** -> **Settings** -> **Jobs &
+Cache** -> run the *Recently Added Scan* for your media server. The
+notification lands within seconds of that job flipping the request.
+
+If the scan runs and the request still does not flip, the library holding the
+file is probably not enabled for synchronisation under **Seerr** ->
+**Settings** -> (your media server) -> **Libraries**. Seerr cannot mark media
+available that it never scans.
+
+> **4K vs non-4K are tracked separately.** `media.status` and `media.status4k`
+> are independent, and `available` fires for the version that was actually
+> requested. A request can sit at `status: pending` while `status4k: available`
+> makes the Seerr UI show "Available" - the 4K copy is there, the requested one
+> is not.
+
+**The entity attributes are frozen at the last event.** They are a copy of that
+webhook payload, not live state, so a stale `media.status: pending` tells you
+nothing about Seerr right now. For the current status, ask Seerr:
+
+```yaml
+action: overseerr.get_requests
+data:
+  config_entry_id: YOUR_CONFIG_ENTRY_ID
+  status: available
+```
+
+If your request is in that response, Seerr considers it available and the
+webhook is the problem. If it is not, Seerr has not matched the file yet - and
+a scan that changes nothing usually means the library is not synced, or the
+item in your media server has no TMDB match for Seerr to tie it to.

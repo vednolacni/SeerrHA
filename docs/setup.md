@@ -10,7 +10,7 @@ Approve / Decline notification on your phone.
 | Requirement | Why |
 |---|---|
 | Seerr (Overseerr / Jellyseerr) reachable from Home Assistant | Source of the requests and target of the approve/decline calls |
-| Official **Seerr** integration (`overseerr`) | Registers the webhook and creates `event.overseerr_last_media_event` |
+| Official **[Seerr integration](https://www.home-assistant.io/integrations/overseerr/)** (`overseerr`) | Registers the webhook and creates the `..._last_media_event` entity |
 | **CSRF Protection disabled** in Seerr | The integration cannot register its webhook while CSRF protection is on |
 | Home Assistant Companion app (Android or iOS) | Actionable notifications with image and buttons |
 | Home Assistant 2024.12 or newer | `overseerr` integration and the `triggers:` / `actions:` automation syntax |
@@ -53,24 +53,29 @@ POST /api/v1/request/{id}/decline
 
 ---
 
-## Step 2: Store the API key in secrets.yaml
+## Step 2: Get the API key
 
-Add to `config/secrets.yaml`:
+**Seerr** -> **Settings** -> **General** -> **API Key**. Keep it to hand - you
+paste it into the blueprint in step 4. Nothing to configure here.
 
-```yaml
-seerr_api_key: YOUR_API_KEY_HERE
-```
-
-Keeping the key out of `configuration.yaml` matters: anything in the main
-config ends up in every backup and in the integration diagnostics download.
+> **Where the key ends up.** Blueprint inputs are stored in plain text in
+> `automations.yaml` and show up in automation traces, so the key travels into
+> backups and diagnostics downloads. That is the trade for not hand-editing
+> YAML.
+>
+> To keep it out of there, set the `X-Api-Key` header in your
+> `rest_commands.yaml` to `!secret seerr_api_key`, add
+> `seerr_api_key: YOUR_KEY` to `config/secrets.yaml`, and leave the blueprint's
+> API key field blank. The command then reads the secret and ignores what the
+> blueprint passes.
 
 ---
 
 ## Step 3: Add the REST commands
 
 Copy [`examples/rest_commands.yaml`](../examples/rest_commands.yaml) to
-`config/rest_commands.yaml`, replace `IP_SEERR`, and include it from
-`configuration.yaml`:
+`config/rest_commands.yaml` **unchanged** - the URL and the key are passed in
+by the blueprint - and include it from `configuration.yaml`:
 
 ```yaml
 rest_command: !include rest_commands.yaml
@@ -82,8 +87,11 @@ Three rules that cost hours if broken - see
 1. The included file must **not** repeat the `rest_command:` key, and command
    names live in column 0.
 2. Command names are slugs: **no capital letters**.
-3. `rest_command` is only read at boot. **Restart** Home Assistant - "Reload
-   YAML configuration" is not enough.
+3. **Restart** Home Assistant this first time. `rest_command` is not loaded
+   until the key exists in your configuration, so there is nothing to reload
+   yet. From then on `rest_command.reload` is enough for new or renamed
+   commands - note that *Reload core configuration* is **not** the same thing
+   and will not pick them up.
 
 > Prefer a single file? [`packages/seerrha.yaml`](../packages/seerrha.yaml)
 > contains the REST commands and the automation in one package.
@@ -92,7 +100,7 @@ Three rules that cost hours if broken - see
 
 ## Step 4: Import the blueprint
 
-[![Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint=https%3A%2F%2Fgithub.com%2Fvednolacni%2FSeerrHA%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fseerrha%2Fseerr_request_approval.yaml)
+[![Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fvednolacni%2FSeerrHA%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fseerrha%2Fseerr_request_approval.yaml)
 
 Or manually: **Settings** -> **Automations & Scenes** -> **Blueprints** ->
 **Import Blueprint**, and paste:
@@ -103,20 +111,62 @@ https://github.com/vednolacni/SeerrHA/blob/main/blueprints/automation/seerrha/se
 
 Then **Create Automation** from the blueprint and fill in:
 
-| Input | Value |
-|---|---|
-| Seerr event entity | `event.overseerr_last_media_event` |
-| REST command | `rest_command.seerrha_request_action` |
-| Notify service | `notify.mobile_app_<your_phone>` |
+| Input | Default | What to put there |
+|---|---|---|
+| Seerr event entity | `event.overseerr_last_media_event` | Pick from the list - the real id follows your config entry |
+| Seerr URL | - | e.g. `http://192.168.1.10:5055`, no trailing slash |
+| Seerr API key | - | From step 2, or blank if you took the `!secret` route |
+| Phone | - | Device picker, listing only phones running the Companion app |
+| Notify service (advanced) | - | Leave empty unless you need a group covering several phones |
+| Approve / Decline labels | `Approve` / `Decline` | Button text |
+| Android notification channel | `Seerr` | Grouping and per-channel sounds |
+| Sticky notification | `true` | Keeps the prompt until a button is pressed (Android) |
+| Confirmation notification | `true` | Short follow-up once the POST goes through |
+| Action prefix | `SEERR` | Only change it if you build a *second* automation from this blueprint |
 
-### Finding your notify service
+### One automation, not one per phone
 
-**Developer Tools** -> **Actions** -> search `notify.mobile_app`. Pick the one
-matching your device.
+The button press arrives as an event with no device information, so every
+automation built from this blueprint reacts to every press - two of them would
+send the decision to Seerr twice. Put a notification **group** covering all your
+phones in *Notify service (advanced)*, or give each automation its own
+*Action prefix*.
 
-> A notify **entity** (`notify.matic_s_phone`) is not the same thing. Entities
-> only support `send_message` - no image, no action buttons. You need the
-> `notify.mobile_app_*` **action**.
+### Placeholders in the YAML routes
+
+On the blueprint route you fill everything into the UI and edit no files. The
+package and the standalone examples carry placeholders instead:
+
+| Placeholder | Replace with | Where to find it |
+|---|---|---|
+| `notify.mobile_app_your_phone` | Your Companion **action**, e.g. `notify.mobile_app_pixel_9` | **Developer Tools** -> **Actions**, search `notify.mobile_app` |
+| `IP_SEERR` | Host or IP of your Seerr server | The address you open Seerr on (port `5055` by default) |
+| `YOUR_SEERR_API_KEY` | Your Seerr API key | **Seerr** -> **Settings** -> **General** -> **API Key** |
+| `YOUR_CONFIG_ENTRY_ID` | The integration's config entry id (only the pending-requests reminder needs it) | Build the action once in **Developer Tools** -> **Actions** -> **Seerr: Get requests**, switch to YAML mode and copy it |
+
+The event entity id is not fixed either. The integration names it after the
+config entry, so it may be `event.seerr_last_media_event`,
+`event.server_seerr_last_media_event` or similar - take whichever
+`..._last_media_event` the picker offers rather than typing the one used in
+these docs.
+
+### Phone, or notify service?
+
+**Phone** is a device picker listing only devices that run the Companion app,
+so there is nothing to type and nothing to get wrong. Use it unless you need
+something it cannot express.
+
+**Notify service (advanced)** overrides it, and is there for one case: a
+notification **group** covering several phones, e.g. `notify.all_phones`. Find
+service names under **Developer Tools** -> **Actions** -> `notify.mobile_app`.
+
+> If you use the advanced field, a notify **entity** (`notify.your_phone`) is
+> not the same thing. Entities only support `send_message` - no image, no action
+> buttons. You need the `notify.mobile_app_*` **action**.
+
+> The blueprint derives the service from the device's *registered* name. If you
+> renamed the phone inside the Companion app and notifications stop arriving,
+> put the real service name in the advanced field.
 
 ---
 
@@ -128,11 +178,13 @@ matching your device.
 
 ```yaml
 action: rest_command.seerrha_test
-data: {}
+data:
+  base_url: "http://192.168.1.10:5055"
+  api_key: "YOUR_API_KEY"
 ```
 
-A `404` with `Request not found.` is a **good** result here - it means
-authentication succeeded and only that specific request ID is missing. See the
+This reads one request and changes nothing. A `200` means the key works. A
+`403` means the key is wrong or CSRF protection is still on - see the
 [response table](troubleshooting.md#telling-api-responses-apart).
 
 ### Does approving work?
@@ -140,6 +192,8 @@ authentication succeeded and only that specific request ID is missing. See the
 ```yaml
 action: rest_command.seerrha_request_action
 data:
+  base_url: "http://192.168.1.10:5055"
+  api_key: "YOUR_API_KEY"
   request_id: 35
   cmd: approve
 ```
