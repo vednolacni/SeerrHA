@@ -78,3 +78,8 @@ the current request ID. The buttons would send the template as a literal string.
 Approve and decline from the notification, or call
 [`script.seerrha_decide_request`](scripts/seerr_decide_request.yaml) with an ID
 you already know.
+
+For a dashboard with working buttons, use the
+[Glance widget](../glance/seerr-requests/README.md). It renders the request list
+itself and posts each decision to a Home Assistant webhook, so no card template
+has to know the request ID.

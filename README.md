@@ -45,6 +45,7 @@ No custom component, no HACS: a blueprint and one REST command file.
 - 🧩 A blueprint with a device picker — no YAML to edit
 - 📦 Or one package file, if you prefer YAML to blueprints
 - 🚦 A failed decision keeps the prompt on screen and shows you the HTTP status
+- 🖥️ A [Glance](https://github.com/glanceapp/glance) widget for the queue, with optional Approve and Decline
 - 🤖 An [`llms.txt`](llms.txt), so ChatGPT stops inventing `overseerr.update_request`
 
 ## Requirements
@@ -116,6 +117,25 @@ successful one, while the request sat untouched in Seerr.
 
 <br clear="right">
 
+## On a Glance dashboard
+
+<img src="glance/seerr-requests/preview-buttons.png" alt="The Glance widget listing pending requests, each with Approve and Decline buttons" width="240" align="right">
+
+If you run [Glance](https://github.com/glanceapp/glance),
+[`glance/seerr-requests`](glance/seerr-requests/README.md) is a widget for the
+queue itself: poster, who asked, how long ago. On its own it needs nothing but
+Seerr.
+
+Give it a Home Assistant webhook and each pending request gets Approve and
+Decline buttons. They post to a second blueprint,
+[Glance dashboard buttons](blueprints/automation/seerrha/seerr_glance_webhook.yaml),
+which makes the same REST call the notification does and, if you pick your
+phone in it, clears the notification there. The API key stays in Home
+Assistant; the page only holds the webhook id, which is why the blueprint
+accepts it from your local network by default.
+
+<br clear="right">
+
 ## Documentation
 
 | Guide | What is in it |
@@ -124,6 +144,7 @@ successful one, while the request sat untouched in Seerr.
 | [Event & Data Reference](docs/event-reference.md) | Attribute structure, event types, API endpoints, and the design decisions |
 | [Troubleshooting & FAQ](docs/troubleshooting.md) | Slug errors, stale REST commands, 403 hunts, notify entity vs. action |
 | [Examples & Cookbook](examples/README.md) | Ready-to-use automations and a helper script |
+| [Glance widget](glance/seerr-requests/README.md) | The dashboard widget, its options, and the webhook buttons |
 | [`llms.txt`](llms.txt) | Compact reference for feeding to an AI assistant |
 
 ## Support
