@@ -54,9 +54,13 @@ blueprint:
           description: >-
             Accept the buttons only from devices on your local network. The
             request comes from the browser showing Glance, not from the Glance
-            server, so this checks the device you click on. Turn it off only if
-            you open Glance from outside your network and Home Assistant is
-            reachable there.
+            server, so this checks the device you click on.
+
+
+            Turn it off when the widget's `ha-webhook-url` goes through a
+            Cloudflare tunnel or reverse proxy - even at home, Home Assistant
+            then sees the request as remote and logs `Received remote request
+            for local webhook`. Glance must then be behind a login.
           default: true
           selector:
             boolean:

@@ -249,18 +249,48 @@ dashboard.
 Worth knowing before you turn this on:
 
 - The webhook id works as a password, and it sits in the page source. Anyone
-  who can open your Glance page can approve and decline. Keep the blueprint's
-  "Local only" setting on, and put authentication in front of Glance if it is
-  reachable from outside your network.
+  who can open your Glance page can approve and decline. Put authentication in
+  front of Glance if it is reachable from outside your network.
 - The request is sent by the browser, not by the Glance server. The Home
   Assistant address has to work from the device you click on.
 - If Glance is served over HTTPS, the webhook URL has to be HTTPS too.
-  Browsers block plain-HTTP requests from HTTPS pages.
-- Home Assistant answers every webhook id with 200, so a mistyped id still
-  shows "Sent". If nothing happens, compare the ids and open the automation's
-  traces.
+  Browsers block plain-HTTP requests from HTTPS pages, and a page on a public
+  domain may not call a private address at all. The row then says "Home
+  Assistant unreachable".
 - Only pending requests get buttons. A decided request stays on the list,
   faded, until the widget refreshes.
+
+### Glance on a domain
+
+If you open Glance through a Cloudflare tunnel or a reverse proxy, the buttons
+have to reach Home Assistant the same way:
+
+- Use Home Assistant's public HTTPS address in `ha-webhook-url`. If Home
+  Assistant is not exposed yet, it is enough to route `/api/webhook/` to it; the
+  rest of its UI can stay private.
+- Turn "Local only" off in the blueprint. The request arrives through the
+  tunnel, so Home Assistant does not count it as local.
+- If Home Assistant has not been behind a proxy before, it also needs
+  `use_x_forwarded_for: true` and the proxy's address under `trusted_proxies`
+  in its `http:` config.
+
+With "Local only" off, the webhook id is the only thing between the internet
+and your request queue, so Glance itself must sit behind a login.
+
+### "Sent", but nothing happens in Seerr
+
+Home Assistant answers every webhook request with 200, whatever it does with it,
+so the browser cannot tell these apart. Its log can (Settings → System → Logs,
+search for `webhook`):
+
+| Log line | Cause | Fix |
+|---|---|---|
+| `Received remote request for local webhook ...` | "Local only" is on, and the request came from outside | Turn "Local only" off, see above |
+| `Received message for unregistered webhook ...` | The id in `ha-webhook-url` does not match the blueprint | Copy the id from the automation |
+| `A request from a reverse proxy was received from ...` | Home Assistant does not trust the proxy | Add `use_x_forwarded_for` and `trusted_proxies` |
+
+None of these? Open the automation's traces. A run that reached Seerr and
+failed is also reported as a Home Assistant notification.
 
 ## Notes
 

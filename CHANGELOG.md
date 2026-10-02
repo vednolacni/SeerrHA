@@ -35,6 +35,13 @@ All notable changes to this project are documented in this file.
   Seerr 500 is reported, and GET is refused. The notification blueprint loads
   unchanged in the same Home Assistant.
 
+  Then on a live setup, with Glance and Home Assistant both behind a Cloudflare
+  tunnel: the widget lists real requests, and Approve moved a pending request
+  to Requested in Seerr. That setup needs "Local only" off - Home Assistant
+  silently drops the request otherwise - so the widget README now covers Glance
+  on a domain, and maps the three Home Assistant log lines that look identical
+  from the browser ("Sent") to their causes.
+
 ### Changed
 
 - `scripts/check_blueprint.py` checks every blueprint in

@@ -302,5 +302,9 @@ request_id=35&cmd=approve        # cmd: approve | decline
   `message: clear_notification` and `tag: seerr_<request_id>`, the tag the
   notification blueprint sets.
 * The webhook id is visible in the Glance page source and acts as the password.
-  Keep `local_only: true` unless the user explicitly needs otherwise.
+  Keep `local_only: true` when Glance and Home Assistant are reached on the LAN.
+  When `ha-webhook-url` goes through a Cloudflare tunnel or reverse proxy, the
+  request is remote even from home: `local_only` must be `false` (Home
+  Assistant otherwise logs `Received remote request for local webhook` and
+  drops it), the URL must be HTTPS, and Glance must be behind authentication.
 
