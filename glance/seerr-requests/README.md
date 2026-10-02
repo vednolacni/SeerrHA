@@ -4,6 +4,9 @@ The requests waiting in Seerr (or Overseerr, or Jellyseerr): poster, title,
 who asked and when, and for TV the seasons they picked. Each one links to its
 page in Seerr, where approving is a click away.
 
+It fits the column it is in: one request per row in a small column, as many
+side by side as fit in a wide one.
+
 If you run Home Assistant, the widget can also carry Approve and Decline
 buttons of its own. They are off by default; [see below](#approve-and-decline-buttons).
 
@@ -28,7 +31,7 @@ affect it.
 | `filter` | `pending` | `pending`, `all`, `approved`, `processing`, `available`, `unavailable` or `failed`. |
 | `sort` | `added` | `added` or `modified`. |
 | `max-requests` | `10` | How many requests to show. Each one costs one extra API call per refresh, for its title and poster. |
-| `collapse-after` | `4` | Rows shown before "Show more". |
+| `collapse-after` | `4` | Requests shown before "Show more". In a wide column, a multiple of how many fit side by side keeps the last row full. |
 | `show-posters` | `true` | Set to `false` for a text-only list. |
 | `ha-webhook-url` | `""` | Turns on the Approve and Decline buttons. See below. |
 
@@ -88,7 +91,8 @@ use `- $include: seerr-requests.yml`.
         <p class="text-center color-subdue">No {{ if ne $filter "all" }}{{ $filter }} {{ end }}requests</p>
       {{ else }}
         {{ if ne $webhook "" }}<iframe name="sink-seerr-requests" title="Fallback target for the Approve and Decline buttons" hidden></iframe>{{ end }}
-        <ul class="list list-gap-14 collapsible-container" data-collapse-after="{{ $collapseAfter }}">
+        <ul class="list collapsible-container" data-collapse-after="{{ $collapseAfter }}"
+          style="display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 1fr)); gap: 1.6rem 2.4rem;">
         {{ range $requests }}
           {{ $type := .String "type" }}
           {{ $tmdbId := .String "media.tmdbId" }}
@@ -131,7 +135,7 @@ use `- $include: seerr-requests.yml`.
           {{ else if eq $mediaStatus 3 }}{{ $statusLabel = "Processing" }}{{ $statusClass = "color-primary" }}
           {{ end }}
 
-          <li class="flex items-center gap-15">
+          <li class="flex items-center gap-15" style="margin-top: 0;" data-seerrha-id="{{ .Int "id" }}">
             {{ if $showPosters }}
               <a href="{{ $link }}" target="_blank" rel="noreferrer" class="shrink-0">
                 {{ if ne $poster "" }}
@@ -162,17 +166,38 @@ use `- $include: seerr-requests.yml`.
                 {{ if $is4k }}<li>4K</li>{{ end }}
               </ul>
               {{ if and (ne $webhook "") (eq $requestStatus 1) }}
+                <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" hidden data-seerrha-mark
+                  onload="var row = this.closest('li'), key = 'seerrha-' + row.dataset.seerrhaId, cmd = this.dataset.cmd, saved;
+                    if (!cmd) {
+                      try { saved = JSON.parse(localStorage.getItem(key)); } catch (e) {}
+                      if (!saved || Date.now() - saved.t > 600000) return;
+                      cmd = saved.cmd;
+                    }
+                    var tone = cmd === 'approve' ? 'positive' : 'negative';
+                    var tint = 'color-mix(in srgb, var(--color-' + tone + ') 14%, transparent)';
+                    row.style.background = tint;
+                    row.style.boxShadow = '0 0 0 0.6rem ' + tint;
+                    row.style.borderRadius = 'var(--border-radius)';
+                    row.querySelectorAll('img').forEach(function (img) { img.style.filter = 'grayscale(1)'; img.style.opacity = '0.6'; });
+                    var status = row.querySelector('[data-seerrha-status]');
+                    status.textContent = cmd === 'approve' ? 'Approve sent' : 'Decline sent';
+                    status.className = 'color-' + tone;
+                    row.querySelector('form').style.display = 'none';">
                 <form method="post" action="{{ $webhook }}" target="sink-seerr-requests" class="flex gap-10 margin-top-5"
-                  onsubmit="var form = this, row = form.closest('li'), status = row.querySelector('[data-seerrha-status]');
-                    var body = new URLSearchParams(new FormData(form));
-                    body.set('cmd', event.submitter.value);
+                  onsubmit="var form = this, row = form.closest('li'), cmd = event.submitter.value;
+                    var status = row.querySelector('[data-seerrha-status]'), mark = row.querySelector('[data-seerrha-mark]');
                     var buttons = form.querySelectorAll('button');
-                    row.style.opacity = '0.45';
+                    var body = new URLSearchParams(new FormData(form));
+                    body.set('cmd', cmd);
                     buttons.forEach(function (b) { b.disabled = true; });
+                    status.textContent = 'Sending';
                     fetch(form.action, { method: 'POST', mode: 'no-cors', body: body })
-                      .then(function () { status.textContent = 'Sent'; })
+                      .then(function () {
+                        try { localStorage.setItem('seerrha-' + row.dataset.seerrhaId, JSON.stringify({ cmd: cmd, t: Date.now() })); } catch (e) {}
+                        mark.dataset.cmd = cmd;
+                        mark.onload();
+                      })
                       .catch(function () {
-                        row.style.opacity = '1';
                         buttons.forEach(function (b) { b.disabled = false; });
                         status.textContent = 'Home Assistant unreachable';
                         status.className = 'color-negative';
@@ -199,9 +224,14 @@ use `- $include: seerr-requests.yml`.
 
 ![All requests](preview-all.png)
 
-With the buttons on, after pressing Approve on the first request:
+With the buttons on, after pressing Approve on the first request and Decline
+on the second:
 
 ![Approve and Decline buttons](preview-buttons.png)
+
+In a full-width column:
+
+![Full-width column](preview-wide.png)
 
 ## Approve and Decline buttons
 
@@ -238,9 +268,11 @@ requests into phone notifications with the same two buttons.
      ha-webhook-url: http://homeassistant.local:8123/api/webhook/<your id>
    ```
 
-Pressing a button fades the row, and its status reads "Sent" once Home
-Assistant has the request. If Home Assistant cannot be reached, the row comes
-back and says so. Seerr's answer goes to Home Assistant rather than to the
+Once Home Assistant has the request, the row takes on the colour of the button
+you pressed, its poster turns grey, the buttons go away and the status reads
+"Approve sent" or "Decline sent". The browser remembers this for ten minutes,
+so reloading the page before the widget refreshes does not bring the buttons
+back. If Home Assistant cannot be reached, the row stays as it was and says so. Seerr's answer goes to Home Assistant rather than to the
 browser, so a decision Seerr rejects is reported there, as a Home Assistant
 notification, and on your phone if you pick one in the blueprint. Picking the
 phone also clears the request's notification from it when you decide on the
@@ -258,7 +290,7 @@ Worth knowing before you turn this on:
   domain may not call a private address at all. The row then says "Home
   Assistant unreachable".
 - Only pending requests get buttons. A decided request stays on the list,
-  faded, until the widget refreshes.
+  coloured, until the widget refreshes.
 
 ### Glance on a domain
 
@@ -277,10 +309,11 @@ have to reach Home Assistant the same way:
 With "Local only" off, the webhook id is the only thing between the internet
 and your request queue, so Glance itself must sit behind a login.
 
-### "Sent", but nothing happens in Seerr
+### "Approve sent", but nothing happens in Seerr
 
 Home Assistant answers every webhook request with 200, whatever it does with it,
-so the browser cannot tell these apart. Its log can (Settings → System → Logs,
+so the browser cannot tell these apart: each one shows "Approve sent" or
+"Decline sent". Its log can (Settings → System → Logs,
 search for `webhook`):
 
 | Log line | Cause | Fix |

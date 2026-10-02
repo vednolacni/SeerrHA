@@ -11,6 +11,9 @@ All notable changes to this project are documented in this file.
   entry so the folder can be submitted there as it is. It lists requests with
   poster, title, requester, age, seasons and a status label, and links each one
   to its page in Seerr. It reads Seerr directly and needs no Home Assistant.
+  The list is a grid that puts as many requests side by side as the column
+  fits, so it works in a small column and does not leave a full-width one
+  mostly empty.
 
   The three Overseerr widgets already in community-widgets show counts, a user
   leaderboard and trending titles; none shows the queue itself.
@@ -26,8 +29,11 @@ All notable changes to this project are documented in this file.
   It validates both fields before they reach the Seerr URL, clears the phone
   prompt (`tag: seerr_<id>`) on success, and reports a failure as a Home
   Assistant notification - the browser never sees Seerr's answer, and Home
-  Assistant answers 200 to every webhook id, so the widget can only say "Sent"
-  or "Home Assistant unreachable".
+  Assistant answers 200 to every webhook id, so the widget can only say that the
+  request was sent, or "Home Assistant unreachable". A sent row takes the
+  colour of the pressed button (the theme's positive or negative colour), and
+  the browser remembers it for ten minutes so a reload before the next refresh
+  does not offer the buttons again.
 
   Tested end to end against Home Assistant 2026.2.3 and a Glance build from
   2026-09-05, with a stand-in for the Seerr API: approve and decline reach
@@ -40,7 +46,7 @@ All notable changes to this project are documented in this file.
   to Requested in Seerr. That setup needs "Local only" off - Home Assistant
   silently drops the request otherwise - so the widget README now covers Glance
   on a domain, and maps the three Home Assistant log lines that look identical
-  from the browser ("Sent") to their causes.
+  from the browser (all three read as sent) to their causes.
 
 ### Changed
 

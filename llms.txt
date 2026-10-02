@@ -296,7 +296,7 @@ request_id=35&cmd=approve        # cmd: approve | decline
   `approve` or `decline` - the values end up in the Seerr URL.
 * Home Assistant answers 200 to every webhook id, registered or not, so the
   browser cannot tell a wrong id from a right one. The widget only reports
-  "Sent" or "Home Assistant unreachable"; Seerr's answer is reported in Home
+  "Approve sent" / "Decline sent" or "Home Assistant unreachable"; Seerr's answer is reported in Home
   Assistant (persistent notification, plus the phone if configured).
 * After a successful decision, clear the phone prompt with
   `message: clear_notification` and `tag: seerr_<request_id>`, the tag the
