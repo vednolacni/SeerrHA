@@ -19,7 +19,7 @@ jobs:
         run: pip install yamllint
 
       - name: Lint YAML files
-        run: yamllint -c .yamllint blueprints examples packages .github
+        run: yamllint -c .yamllint blueprints examples packages glance .github
 
   blueprint:
     name: Blueprint sanity check

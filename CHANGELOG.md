@@ -2,6 +2,65 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.7.0] - 2026-10-01
+
+### Added
+
+- A Glance widget, `glance/seerr-requests/`, laid out as a
+  [glanceapp/community-widgets](https://github.com/glanceapp/community-widgets)
+  entry so the folder can be submitted there as it is. It lists requests with
+  poster, title, requester, age, seasons and a status label, and links each one
+  to its page in Seerr. It reads Seerr directly and needs no Home Assistant.
+  The list is a grid that puts as many requests side by side as the column
+  fits, so it works in a small column and does not leave a full-width one
+  mostly empty.
+
+  Pending TV requests carry an Edit seasons link. Seerr decides a request as a
+  whole, so approving only some seasons means editing the request first; the
+  link opens the series with Seerr's Manage panel already open
+  (`/tv/<id>?manage=1`), where that edit lives.
+
+  The three Overseerr widgets already in community-widgets show counts, a user
+  leaderboard and trending titles; none shows the queue itself.
+
+- Optional Approve and Decline buttons in that widget, and a second blueprint,
+  `seerr_glance_webhook.yaml`, to receive them.
+
+  Glance cannot make the call itself: its templates run on the Glance server on
+  every refresh, so a POST in one would fire each time the widget renders, and
+  calling Seerr from the browser would put the API key in the page. The buttons
+  POST a two-field form to a Home Assistant webhook instead, and the blueprint
+  calls the same `rest_command.seerrha_request_action` as the notification.
+  It validates both fields before they reach the Seerr URL, clears the phone
+  prompt (`tag: seerr_<id>`) on success, and reports a failure as a Home
+  Assistant notification - the browser never sees Seerr's answer, and Home
+  Assistant answers 200 to every webhook id, so the widget can only say that the
+  request was sent, or "Home Assistant unreachable". A sent row takes the
+  colour of the pressed button (the theme's positive or negative colour), and
+  the browser remembers it for ten minutes so a reload before the next refresh
+  does not offer the buttons again.
+
+  Tested end to end against Home Assistant 2026.2.3 and a Glance build from
+  2026-09-05, with a stand-in for the Seerr API: approve and decline reach
+  Seerr, a bad `cmd`, a path in `request_id` and an empty form are dropped, a
+  Seerr 500 is reported, and GET is refused. The notification blueprint loads
+  unchanged in the same Home Assistant.
+
+  Then on a live setup, with Glance and Home Assistant both behind a Cloudflare
+  tunnel: the widget lists real requests, and Approve moved a pending request
+  to Requested in Seerr. That setup needs "Local only" off - Home Assistant
+  silently drops the request otherwise - so the widget README now covers Glance
+  on a domain, and maps the three Home Assistant log lines that look identical
+  from the browser (all three read as sent) to their causes.
+
+### Changed
+
+- `scripts/check_blueprint.py` checks every blueprint in
+  `blueprints/automation/seerrha/`, not just the first, including that each
+  `source_url` points at its own file. It also fails when the YAML embedded in
+  the Glance widget's README drifts from `widget.yml`.
+- yamllint covers `glance/`.
+
 ## [1.6.0] - 2026-09-20
 
 ### Fixed

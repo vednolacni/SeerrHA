@@ -1,0 +1,241 @@
+blueprint:
+  name: SeerrHA - Glance dashboard buttons
+  description: >-
+    <a href="https://github.com/vednolacni/SeerrHA"><img
+    src="https://raw.githubusercontent.com/vednolacni/SeerrHA/main/docs/images/logo-wide-auto.png"
+    alt="SeerrHA" width="300"></a>
+
+
+    Receives the Approve / Decline buttons of the
+    [SeerrHA Glance widget](https://github.com/vednolacni/SeerrHA/tree/main/glance/seerr-requests)
+    and sends the decision to Seerr. The widget posts a small form to this
+    automation's webhook; the Seerr API key stays in Home Assistant and never
+    reaches the browser.
+
+
+    **Prerequisites**
+
+    1. `rest_command.seerrha_request_action` from
+    [`examples/rest_commands.yaml`](https://github.com/vednolacni/SeerrHA/blob/main/examples/rest_commands.yaml),
+    the same one the notification blueprint uses.
+
+    2. The Glance widget's `ha-webhook-url` option set to
+    `http://<home-assistant>:8123/api/webhook/<the id you choose below>`.
+
+
+    **The webhook id is the password.** Anyone who can open your Glance page can
+    read it from the page source and approve requests. Use a long random id and
+    keep **Local only** on.
+
+
+    **Documentation**
+
+    - [Glance widget and setup](https://github.com/vednolacni/SeerrHA/tree/main/glance/seerr-requests)
+
+    - [SeerrHA on GitHub](https://github.com/vednolacni/SeerrHA)
+  domain: automation
+  source_url: https://github.com/vednolacni/SeerrHA/blob/main/blueprints/automation/seerrha/seerr_glance_webhook.yaml
+  input:
+    webhook_settings:
+      name: Webhook
+      icon: mdi:webhook
+      collapsed: false
+      input:
+        webhook_id:
+          name: Webhook id
+          description: >-
+            A long random string, e.g. `seerrha-glance-` followed by 32 random
+            letters and digits. Letters, digits, `-` and `_` only. The Glance
+            widget posts to `/api/webhook/<this id>`.
+          selector:
+            text:
+        local_only:
+          name: Local only
+          description: >-
+            Accept the buttons only from devices on your local network. The
+            request comes from the browser showing Glance, not from the Glance
+            server, so this checks the device you click on.
+
+
+            Turn it off when the widget's `ha-webhook-url` goes through a
+            Cloudflare tunnel or reverse proxy - even at home, Home Assistant
+            then sees the request as remote and logs `Received remote request
+            for local webhook`. Glance must then be behind a login.
+          default: true
+          selector:
+            boolean:
+    seerr_settings:
+      name: Seerr
+      icon: mdi:movie-open-check
+      collapsed: false
+      input:
+        seerr_url:
+          name: Seerr URL
+          description: >-
+            Base URL of your Seerr server, e.g. `http://192.168.1.10:5055`.
+            **No trailing slash.** Same value as in the notification blueprint.
+          selector:
+            text:
+        seerr_api_key:
+          name: Seerr API key
+          description: >-
+            Seerr -> Settings -> General -> API Key. Leave blank if your
+            `rest_commands.yaml` reads the key from `!secret seerr_api_key`.
+          default: ""
+          selector:
+            text:
+              type: password
+    phone_settings:
+      name: Phone (optional)
+      icon: mdi:cellphone-message
+      collapsed: true
+      input:
+        notify_device:
+          name: Phone
+          description: >-
+            The phone the notification blueprint sends to. When a request is
+            decided from Glance, its pending notification is cleared there, and
+            a failed decision is reported to it. Leave empty to skip both; a
+            failure still shows up as a Home Assistant notification.
+          default: ""
+          selector:
+            device:
+              filter:
+                - integration: mobile_app
+        notify_service:
+          name: Notify service (advanced)
+          description: >-
+            Only for a notification group such as `notify.all_phones`. Takes
+            priority over the phone above. Must be a notify service, not a
+            notify entity.
+          default: ""
+          selector:
+            text:
+        notification_channel:
+          name: Android notification channel
+          default: Seerr
+          selector:
+            text:
+        confirm_decision:
+          name: Confirmation notification
+          description: >-
+            Also send the short "Request #35 approved." follow-up to the phone.
+            Off by default: you are looking at the dashboard when you press the
+            button.
+          default: false
+          selector:
+            boolean:
+
+mode: queued
+max: 10
+
+triggers:
+  - trigger: webhook
+    webhook_id: !input webhook_id
+    allowed_methods:
+      - POST
+    local_only: !input local_only
+
+variables:
+  notify_device: !input notify_device
+  notify_service: !input notify_service
+  # Same derivation as the notification blueprint, so the two clear and report
+  # to the same phone. Empty when neither input is set.
+  notify_target: >-
+    {% if notify_service %}{{ notify_service }}
+    {%- elif notify_device %}notify.mobile_app_{{ device_attr(notify_device, 'name') | slugify }}
+    {%- endif %}
+  seerr_url: !input seerr_url
+  seerr_api_key: !input seerr_api_key
+  notification_channel: !input notification_channel
+  confirm_decision: !input confirm_decision
+  # The widget posts a form, so the fields arrive in trigger.data; accept a JSON
+  # body too, for testing with curl. Read the two fields directly - storing the
+  # whole payload in a variable turns it into a string.
+  rid: >-
+    {% set src = trigger.json if trigger.json is defined else trigger.data %}
+    {{ src.get('request_id', '') if src is mapping else '' }}
+  cmd: >-
+    {% set src = trigger.json if trigger.json is defined else trigger.data %}
+    {{ src.get('cmd', '') if src is mapping else '' }}
+
+conditions:
+  # Anything else is not from the widget. Dropping it here also keeps arbitrary
+  # text out of the Seerr URL the REST command builds.
+  - condition: template
+    value_template: >-
+      {{ rid | string | regex_match('^[0-9]+$')
+         and cmd in ['approve', 'decline'] }}
+
+actions:
+  # continue_on_error so a connection error still reports back instead of
+  # aborting the run silently.
+  - action: rest_command.seerrha_request_action
+    data:
+      base_url: "{{ seerr_url }}"
+      api_key: "{{ seerr_api_key }}"
+      request_id: "{{ rid }}"
+      cmd: "{{ cmd }}"
+    response_variable: result
+    continue_on_error: true
+  - variables:
+      ok: >-
+        {{ result is defined and result.status is defined
+           and result.status in [200, 201] }}
+      status: >-
+        {{ result.status if result is defined and result.status is defined
+           else 'no response' }}
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ ok }}"
+        sequence:
+          - if:
+              - condition: template
+                value_template: "{{ notify_target != '' }}"
+            then:
+              # Decided on the dashboard: the prompt on the phone is stale now.
+              - action: "{{ notify_target }}"
+                data:
+                  message: clear_notification
+                  data:
+                    tag: "seerr_{{ rid }}"
+              - if:
+                  - condition: template
+                    value_template: "{{ confirm_decision }}"
+                then:
+                  - action: "{{ notify_target }}"
+                    data:
+                      title: Seerr
+                      message: >-
+                        Request #{{ rid }} {{ 'approved' if cmd == 'approve' else 'declined' }}.
+                      data:
+                        tag: "seerr_result_{{ rid }}"
+                        group: seerr
+                        channel: "{{ notification_channel }}"
+                        importance: default
+    # The widget cannot see this result - the row only fades when the form is
+    # sent - so a failure has to be reported somewhere else.
+    default:
+      - action: persistent_notification.create
+        data:
+          notification_id: "seerrha_glance_{{ rid }}"
+          title: Seerr - decision from Glance failed
+          message: >-
+            Could not {{ cmd }} request #{{ rid }} ({{ status }}). It is still
+            pending in Seerr.
+      - if:
+          - condition: template
+            value_template: "{{ notify_target != '' }}"
+        then:
+          - action: "{{ notify_target }}"
+            data:
+              title: Seerr - decision failed
+              message: >-
+                Could not {{ cmd }} request #{{ rid }} from Glance ({{ status }}).
+                It is still pending.
+              data:
+                tag: "seerr_error_{{ rid }}"
+                group: seerr
+                channel: "{{ notification_channel }}"
+                importance: high

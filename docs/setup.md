@@ -215,3 +215,12 @@ Submit a request in Seerr from a non-admin account (an admin's own requests are
 auto-approved and arrive as `auto_approved`, not `pending`). The notification
 should arrive within seconds with the poster, the requester's name and both
 buttons.
+
+---
+
+## Optional: a Glance dashboard
+
+The [Glance widget](../glance/seerr-requests/README.md) lists the queue on a
+[Glance](https://github.com/glanceapp/glance) page and can carry Approve and
+Decline buttons. The buttons need the REST command from step 3 and a second
+blueprint, `seerr_glance_webhook.yaml`; the widget's README walks through both.

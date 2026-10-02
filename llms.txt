@@ -20,6 +20,10 @@ Two halves, because the official integration only covers one of them:
    in Seerr and updates a single entity, `event.overseerr_last_media_event`.
 2. **Outbound (decisions)**: `rest_command` calls the Seerr REST API directly.
 
+Optional third piece: a Glance dashboard widget whose Approve / Decline buttons
+POST to a Home Assistant webhook, handled by a second blueprint that calls the
+same `rest_command`. See section 9.
+
 The official integration exposes ONLY these actions:
 
 * `overseerr.get_requests` (supports `response_variable`)
@@ -198,7 +202,9 @@ conditions:
 ## 6. Scope
 
 SeerrHA covers exactly one job: turning a `pending` request into an actionable
-notification and POSTing the decision back. It reacts to `pending` only.
+notification and POSTing the decision back. It reacts to `pending` only. The
+Glance widget (section 9) is a second place to make the same decision, not a
+second job.
 
 Do NOT generate a "notify when the download finishes" automation, and do not
 suggest one. Seerr emits `MEDIA_AVAILABLE` only from
@@ -250,3 +256,60 @@ The integration REPLACES `media` with the complete TMDB record, so:
 * Home Assistant 2024.12+ (the `overseerr` integration; `triggers:`/`actions:`
   automation syntax)
 * Home Assistant Companion app (Android or iOS) for actionable notifications
+
+---
+
+## 9. Glance widget and webhook buttons
+
+Files: `glance/seerr-requests/widget.yml` (Glance `custom-api` widget) and
+`blueprints/automation/seerrha/seerr_glance_webhook.yaml` (Home Assistant side).
+
+The widget reads Seerr directly, server-side in Glance, with `X-Api-Key`:
+
+* `GET /api/v1/request?take=<n>&filter=<pending|all|...>&sort=<added|modified>`
+  -> `results[]` with `id`, `status` (1 pending, 2 approved, 3 declined,
+  4 failed, 5 completed), `type` (`movie`|`tv`), `is4k`, `createdAt`,
+  `media.tmdbId`, `media.status` (3 processing, 4 partial, 5 available),
+  `requestedBy.displayName`, `seasons[].seasonNumber`
+* `GET /api/v1/movie/<tmdbId>` (`title`, `releaseDate`, `posterPath`) or
+  `GET /api/v1/tv/<tmdbId>` (`name`, `firstAirDate`, `posterPath`), one per row -
+  the request list carries no title or poster
+
+Approve and decline act on a whole request, all its seasons included; there
+is no per-season approve endpoint. To approve some seasons only, the request is
+edited first. The widget links pending TV requests to `/tv/<tmdbId>?manage=1`,
+which opens Seerr's Manage panel where that edit is done in the UI.
+
+Do NOT generate a Glance template that POSTs to `/approve` or `/decline`.
+Glance templates run on the Glance server on every refresh, so a write call in
+one (`withStringBody`) fires every time the widget renders. Do NOT put the Seerr
+API key in browser-side JavaScript either.
+
+The buttons POST to Home Assistant instead:
+
+```
+POST /api/webhook/<webhook_id>
+Content-Type: application/x-www-form-urlencoded
+
+request_id=35&cmd=approve        # cmd: approve | decline
+```
+
+* Form fields arrive in `trigger.data`, a JSON body in `trigger.json`. Read the
+  two fields directly; storing the whole `trigger.data` (a MultiDict) in a
+  variable renders it as a string.
+* Validate before calling: `request_id` must match `^[0-9]+$` and `cmd` must be
+  `approve` or `decline` - the values end up in the Seerr URL.
+* Home Assistant answers 200 to every webhook id, registered or not, so the
+  browser cannot tell a wrong id from a right one. The widget only reports
+  "Approve sent" / "Decline sent" or "Home Assistant unreachable"; Seerr's answer is reported in Home
+  Assistant (persistent notification, plus the phone if configured).
+* After a successful decision, clear the phone prompt with
+  `message: clear_notification` and `tag: seerr_<request_id>`, the tag the
+  notification blueprint sets.
+* The webhook id is visible in the Glance page source and acts as the password.
+  Keep `local_only: true` when Glance and Home Assistant are reached on the LAN.
+  When `ha-webhook-url` goes through a Cloudflare tunnel or reverse proxy, the
+  request is remote even from home: `local_only` must be `false` (Home
+  Assistant otherwise logs `Received remote request for local webhook` and
+  drops it), the URL must be HTTPS, and Glance must be behind authentication.
+
