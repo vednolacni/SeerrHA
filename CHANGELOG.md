@@ -15,6 +15,11 @@ All notable changes to this project are documented in this file.
   fits, so it works in a small column and does not leave a full-width one
   mostly empty.
 
+  Pending TV requests carry an Edit seasons link. Seerr decides a request as a
+  whole, so approving only some seasons means editing the request first; the
+  link opens the series with Seerr's Manage panel already open
+  (`/tv/<id>?manage=1`), where that edit lives.
+
   The three Overseerr widgets already in community-widgets show counts, a user
   leaderboard and trending titles; none shows the queue itself.
 

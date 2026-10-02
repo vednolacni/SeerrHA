@@ -275,6 +275,11 @@ The widget reads Seerr directly, server-side in Glance, with `X-Api-Key`:
   `GET /api/v1/tv/<tmdbId>` (`name`, `firstAirDate`, `posterPath`), one per row -
   the request list carries no title or poster
 
+Approve and decline act on a whole request, all its seasons included; there
+is no per-season approve endpoint. To approve some seasons only, the request is
+edited first. The widget links pending TV requests to `/tv/<tmdbId>?manage=1`,
+which opens Seerr's Manage panel where that edit is done in the UI.
+
 Do NOT generate a Glance template that POSTs to `/approve` or `/decline`.
 Glance templates run on the Glance server on every refresh, so a write call in
 one (`withStringBody`) fires every time the widget renders. Do NOT put the Seerr

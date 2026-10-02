@@ -165,50 +165,63 @@ use `- $include: seerr-requests.yml`.
                 {{ end }}
                 {{ if $is4k }}<li>4K</li>{{ end }}
               </ul>
-              {{ if and (ne $webhook "") (eq $requestStatus 1) }}
-                <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" hidden data-seerrha-mark
-                  onload="var row = this.closest('li'), key = 'seerrha-' + row.dataset.seerrhaId, cmd = this.dataset.cmd, saved;
-                    if (!cmd) {
-                      try { saved = JSON.parse(localStorage.getItem(key)); } catch (e) {}
-                      if (!saved || Date.now() - saved.t > 600000) return;
-                      cmd = saved.cmd;
-                    }
-                    var tone = cmd === 'approve' ? 'positive' : 'negative';
-                    var tint = 'color-mix(in srgb, var(--color-' + tone + ') 14%, transparent)';
-                    row.style.background = tint;
-                    row.style.boxShadow = '0 0 0 0.6rem ' + tint;
-                    row.style.borderRadius = 'var(--border-radius)';
-                    row.querySelectorAll('img').forEach(function (img) { img.style.filter = 'grayscale(1)'; img.style.opacity = '0.6'; });
-                    var status = row.querySelector('[data-seerrha-status]');
-                    status.textContent = cmd === 'approve' ? 'Approve sent' : 'Decline sent';
-                    status.className = 'color-' + tone;
-                    row.querySelector('form').style.display = 'none';">
-                <form method="post" action="{{ $webhook }}" target="sink-seerr-requests" class="flex gap-10 margin-top-5"
-                  onsubmit="var form = this, row = form.closest('li'), cmd = event.submitter.value;
-                    var status = row.querySelector('[data-seerrha-status]'), mark = row.querySelector('[data-seerrha-mark]');
-                    var buttons = form.querySelectorAll('button');
-                    var body = new URLSearchParams(new FormData(form));
-                    body.set('cmd', cmd);
-                    buttons.forEach(function (b) { b.disabled = true; });
-                    status.textContent = 'Sending';
-                    fetch(form.action, { method: 'POST', mode: 'no-cors', body: body })
-                      .then(function () {
-                        try { localStorage.setItem('seerrha-' + row.dataset.seerrhaId, JSON.stringify({ cmd: cmd, t: Date.now() })); } catch (e) {}
-                        mark.dataset.cmd = cmd;
-                        mark.onload();
-                      })
-                      .catch(function () {
-                        buttons.forEach(function (b) { b.disabled = false; });
-                        status.textContent = 'Home Assistant unreachable';
-                        status.className = 'color-negative';
-                      });
-                    return false;">
-                  <input type="hidden" name="request_id" value="{{ .Int "id" }}">
-                  <button type="submit" name="cmd" value="approve" class="size-h6 color-positive"
-                    style="background: none; border: 1px solid currentColor; border-radius: var(--border-radius); padding: 0.2rem 0.8rem; cursor: pointer; font-family: inherit;">Approve</button>
-                  <button type="submit" name="cmd" value="decline" class="size-h6 color-negative"
-                    style="background: none; border: 1px solid currentColor; border-radius: var(--border-radius); padding: 0.2rem 0.8rem; cursor: pointer; font-family: inherit;">Decline</button>
-                </form>
+              {{ if eq $requestStatus 1 }}
+                {{ if ne $webhook "" }}
+                  <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" hidden data-seerrha-mark
+                    onload="var row = this.closest('li'), key = 'seerrha-' + row.dataset.seerrhaId, cmd = this.dataset.cmd, saved;
+                      if (!cmd) {
+                        try { saved = JSON.parse(localStorage.getItem(key)); } catch (e) {}
+                        if (!saved || Date.now() - saved.t > 600000) return;
+                        cmd = saved.cmd;
+                      }
+                      var tone = cmd === 'approve' ? 'positive' : 'negative';
+                      var tint = 'color-mix(in srgb, var(--color-' + tone + ') 14%, transparent)';
+                      row.style.background = tint;
+                      row.style.boxShadow = '0 0 0 0.6rem ' + tint;
+                      row.style.borderRadius = 'var(--border-radius)';
+                      row.querySelectorAll('img').forEach(function (img) { img.style.filter = 'grayscale(1)'; img.style.opacity = '0.6'; });
+                      var status = row.querySelector('[data-seerrha-status]');
+                      status.textContent = cmd === 'approve' ? 'Approve sent' : 'Decline sent';
+                      status.className = 'color-' + tone;
+                      row.querySelector('[data-seerrha-actions]').style.display = 'none';">
+                {{ end }}
+                {{ if or (ne $webhook "") (eq $type "tv") }}
+                  <div class="flex items-center gap-10 margin-top-5" style="flex-wrap: wrap;" data-seerrha-actions>
+                    {{ if ne $webhook "" }}
+                    <form method="post" action="{{ $webhook }}" target="sink-seerr-requests" class="flex gap-10"
+                      onsubmit="var form = this, row = form.closest('li'), cmd = event.submitter.value;
+                        var status = row.querySelector('[data-seerrha-status]'), mark = row.querySelector('[data-seerrha-mark]');
+                        var buttons = form.querySelectorAll('button');
+                        var body = new URLSearchParams(new FormData(form));
+                        body.set('cmd', cmd);
+                        buttons.forEach(function (b) { b.disabled = true; });
+                        status.textContent = 'Sending';
+                        fetch(form.action, { method: 'POST', mode: 'no-cors', body: body })
+                          .then(function () {
+                            try { localStorage.setItem('seerrha-' + row.dataset.seerrhaId, JSON.stringify({ cmd: cmd, t: Date.now() })); } catch (e) {}
+                            mark.dataset.cmd = cmd;
+                            mark.onload();
+                          })
+                          .catch(function () {
+                            buttons.forEach(function (b) { b.disabled = false; });
+                            status.textContent = 'Home Assistant unreachable';
+                            status.className = 'color-negative';
+                          });
+                        return false;">
+                      <input type="hidden" name="request_id" value="{{ .Int "id" }}">
+                      <button type="submit" name="cmd" value="approve" class="size-h6 color-positive"
+                        style="background: none; border: 1px solid currentColor; border-radius: var(--border-radius); padding: 0.2rem 0.8rem; cursor: pointer; font-family: inherit; white-space: nowrap;">Approve</button>
+                      <button type="submit" name="cmd" value="decline" class="size-h6 color-negative"
+                        style="background: none; border: 1px solid currentColor; border-radius: var(--border-radius); padding: 0.2rem 0.8rem; cursor: pointer; font-family: inherit; white-space: nowrap;">Decline</button>
+                    </form>
+                    {{ end }}
+                    {{ if eq $type "tv" }}
+                      <a href="{{ $link }}?manage=1" target="_blank" rel="noreferrer" class="size-h6 color-subdue"
+                        title="Opens the series in Seerr with its requests listed; the pencil there edits the seasons"
+                        style="background: none; border: 1px solid currentColor; border-radius: var(--border-radius); padding: 0.2rem 0.8rem; cursor: pointer; font-family: inherit; text-decoration: none; white-space: nowrap;">Edit seasons</a>
+                    {{ end }}
+                  </div>
+                {{ end }}
               {{ end }}
             </div>
           </li>
@@ -224,14 +237,26 @@ use `- $include: seerr-requests.yml`.
 
 ![All requests](preview-all.png)
 
-With the buttons on, after pressing Approve on the first request and Decline
-on the second:
+With the buttons on, after Approve on one request and Decline on another. The
+two series carry an Edit seasons link:
 
 ![Approve and Decline buttons](preview-buttons.png)
 
 In a full-width column:
 
 ![Full-width column](preview-wide.png)
+
+## Series and seasons
+
+Seerr approves and declines a request as a whole: Approve on a request for
+seasons 1 to 3 approves all three. To approve only some of them, edit the
+request first.
+
+Every pending TV request in the widget has an Edit seasons link for that. It
+opens the series in Seerr with its Manage panel already open (`?manage=1`),
+where the pencil next to the request lets you untick seasons. Approve there or
+in the widget afterwards. The link is there with or without the buttons, and
+Seerr only shows the pencil to accounts allowed to manage requests.
 
 ## Approve and Decline buttons
 
