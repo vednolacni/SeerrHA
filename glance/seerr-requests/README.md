@@ -10,7 +10,7 @@ side by side as fit in a wide one.
 If you run Home Assistant, the widget can also carry Approve and Decline
 buttons of its own. They are off by default; [see below](#approve-and-decline-buttons).
 
-![Pending requests](preview.png)
+![Pending requests in a full-width column, with Approve, Decline and Edit seasons](preview.png)
 
 ## Environment variables
 
@@ -233,18 +233,19 @@ use `- $include: seerr-requests.yml`.
 
 ## Gallery
 
-`filter: all`, showing the status of each request:
+After Approve on one request and Decline on another. Each row keeps the colour
+of the button until the widget refreshes:
 
-![All requests](preview-all.png)
+![Requests after Approve and Decline](preview-decided.png)
 
-With the buttons on, after Approve on one request and Decline on another. The
-two series carry an Edit seasons link:
+The default dark theme, with `filter: all` in a small column, showing the status
+of each request:
 
-![Approve and Decline buttons](preview-buttons.png)
+![All requests, small column](preview-all.png)
 
-In a full-width column:
+The dark theme at full width:
 
-![Full-width column](preview-wide.png)
+![Full-width column, dark theme](preview-wide.png)
 
 ## Series and seasons
 

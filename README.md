@@ -119,8 +119,6 @@ successful one, while the request sat untouched in Seerr.
 
 ## On a Glance dashboard
 
-<img src="glance/seerr-requests/preview-buttons.png" alt="The Glance widget listing pending requests, each with Approve and Decline buttons" width="240" align="right">
-
 If you run [Glance](https://github.com/glanceapp/glance),
 [`glance/seerr-requests`](glance/seerr-requests/README.md) is a widget for the
 queue itself: poster, who asked, how long ago. On its own it needs nothing but
@@ -134,7 +132,7 @@ phone in it, clears the notification there. The API key stays in Home
 Assistant; the page only holds the webhook id, which is why the blueprint
 accepts it from your local network by default.
 
-<br clear="right">
+<img src="glance/seerr-requests/preview-decided.png" alt="The Glance widget with one request approved and one declined from the dashboard" width="720">
 
 ## Documentation
 
